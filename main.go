@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/kidandcat/portal/internal/config"
 	"github.com/kidandcat/portal/internal/db"
 	"github.com/kidandcat/portal/internal/handlers"
 )
@@ -15,7 +16,9 @@ func main() {
 	dataDir := flag.String("data", "./data", "data directory")
 	flag.Parse()
 
-	if err := db.Init(*dataDir); err != nil {
+	cfg := config.Load(*addr, *baseURL, *dataDir)
+
+	if err := db.Init(cfg.DataDir); err != nil {
 		log.Fatalf("failed to init db: %v", err)
 	}
 	defer db.Close()
@@ -24,10 +27,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	handlers.RegisterRoutes(mux, *baseURL)
+	handlers.RegisterRoutes(mux, cfg)
 
-	log.Printf("listening on %s", *addr)
-	if err := http.ListenAndServe(*addr, mux); err != nil {
+	log.Printf("listening on %s (base URL: %s, SMTP: %v)", cfg.Addr, cfg.BaseURL, cfg.Email.SMTPEnabled)
+	if err := http.ListenAndServe(cfg.Addr, mux); err != nil {
 		log.Fatalf("server error: %v", err)
 	}
 }

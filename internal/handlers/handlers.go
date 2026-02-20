@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kidandcat/portal/internal/auth"
+	"github.com/kidandcat/portal/internal/config"
 	"github.com/kidandcat/portal/internal/db"
 	"github.com/yuin/goldmark"
 )
@@ -26,9 +27,9 @@ func Init(templateDir string) {
 	templates = template.Must(template.New("").Funcs(funcMap).ParseGlob(templateDir + "/*.html"))
 }
 
-func RegisterRoutes(mux *http.ServeMux, baseURL string) {
+func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
 	mux.HandleFunc("GET /{$}", handleIndex)
-	mux.HandleFunc("POST /auth/magic-link", handleMagicLink(baseURL))
+	mux.HandleFunc("POST /auth/magic-link", handleMagicLink(cfg))
 	mux.HandleFunc("GET /auth/verify", handleVerify)
 	mux.HandleFunc("POST /auth/logout", handleLogout)
 	mux.HandleFunc("GET /p/{slug}", handleProject)
@@ -54,7 +55,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handleMagicLink(baseURL string) http.HandlerFunc {
+func handleMagicLink(cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := strings.TrimSpace(r.FormValue("email"))
 		if email == "" {
@@ -69,7 +70,7 @@ func handleMagicLink(baseURL string) http.HandlerFunc {
 			return
 		}
 
-		if err := auth.SendMagicLink(email, token, baseURL); err != nil {
+		if err := auth.SendMagicLink(email, token, cfg); err != nil {
 			log.Printf("error sending magic link: %v", err)
 		}
 
