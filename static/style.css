@@ -221,78 +221,260 @@ button[type="submit"]:hover {
     text-decoration: underline;
 }
 
-/* Pages */
-.page {
+/* Canvas */
+header {
+    margin-bottom: 0;
+    position: relative;
+    z-index: 10;
+}
+
+.project-name {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.toggle-resolved {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-resolved input {
+    cursor: pointer;
+}
+
+#canvas-viewport {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    padding-top: 57px; /* header height */
+    background:
+        radial-gradient(circle, #ddd 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-color: #f5f5f5;
+}
+
+#canvas {
+    position: relative;
+    width: 10000px;
+    height: 10000px;
+}
+
+/* Canvas Elements */
+.canvas-element {
+    position: absolute;
+    user-select: none;
+}
+
+.canvas-el-image {
+    display: flex;
+    align-items: flex-start;
+}
+
+.canvas-el-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    pointer-events: none;
+}
+
+.canvas-el-heading h2 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.canvas-el-text p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #333;
+}
+
+.canvas-el-box .box-content {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+/* Comment Pins */
+.comment-pin {
+    position: absolute;
+    z-index: 5;
+    cursor: pointer;
+    transform: translate(-12px, -12px);
+}
+
+.pin-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50% 50% 50% 0;
+    background: #f97316;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    transition: transform 0.15s;
+}
+
+.pin-number > * {
+    transform: rotate(45deg);
+}
+
+.comment-pin:hover .pin-number {
+    transform: rotate(-45deg) scale(1.15);
+}
+
+.comment-pin.resolved .pin-number {
+    background: #9ca3af;
+}
+
+/* Comment Tooltip */
+.comment-tooltip {
+    display: none;
+    position: absolute;
+    left: 28px;
+    top: -4px;
+    min-width: 220px;
+    max-width: 320px;
     background: #fff;
     border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    border-radius: 8px;
+    padding: 0.75rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 10;
+    cursor: default;
 }
 
-.page h3 {
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #eee;
+.comment-pin:hover .comment-tooltip {
+    display: block;
 }
 
-.page-content {
-    line-height: 1.8;
+.comment-meta {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.35rem;
+    font-weight: 500;
 }
 
-.page-content h1, .page-content h2, .page-content h3 {
-    margin-top: 1rem;
+.comment-text {
+    font-size: 0.875rem;
+    color: #333;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.resolve-btn {
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.resolve-btn:hover {
+    background: #15803d;
+}
+
+.resolved-label {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Comment Form Popup */
+#comment-form-popup {
+    position: fixed;
+    z-index: 20;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0.75rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    width: 280px;
+}
+
+#comment-form-popup.hidden {
+    display: none;
+}
+
+#comment-form input[type="text"],
+#comment-form textarea {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    outline: none;
     margin-bottom: 0.5rem;
 }
 
-.page-content p {
-    margin-bottom: 0.75rem;
+#comment-form input[type="text"]:focus,
+#comment-form textarea:focus {
+    border-color: var(--primary);
 }
 
-.page-content code {
+#comment-form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.comment-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.cancel-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
     background: #f3f3f3;
-    padding: 0.15rem 0.4rem;
-    border-radius: 3px;
-    font-size: 0.9em;
+    color: #555;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-.page-content pre {
-    background: #f3f3f3;
-    padding: 1rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin-bottom: 0.75rem;
+.cancel-btn:hover {
+    background: #e5e5e5;
 }
 
-.page-content pre code {
-    padding: 0;
-    background: none;
+.submit-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    background: #f97316;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-.empty {
-    color: #888;
-    text-align: center;
-    padding: 3rem 0;
+.submit-btn:hover {
+    background: #ea580c;
 }
 
-/* Responsive images */
-img {
-    max-width: 50vw;
-    max-height: 50vh;
-    height: auto;
-    object-fit: contain;
-}
-
-.page-content img {
-    max-width: 50vw;
-    max-height: 50vh;
-    height: auto;
-    object-fit: contain;
-    border-radius: 6px;
-    margin: 0.5rem 0;
-}
-
-/* Contact form */
+/* Contact form (kept for other pages) */
 .contact-section {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -325,16 +507,6 @@ img {
 .contact-section button {
     margin-top: 0.75rem;
     padding: 0.75rem 2rem;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-}
-
-.contact-section button:hover {
-    opacity: 0.85;
 }
 
 .contact-success {
@@ -355,7 +527,6 @@ img {
 
     header {
         padding: 0.75rem 0;
-        margin-bottom: 1rem;
     }
 
     .header-inner {
@@ -370,17 +541,5 @@ img {
 
     .auth-container h1 {
         font-size: 1.5rem;
-    }
-
-    .page {
-        padding: 1rem;
-    }
-
-    .page-content pre {
-        font-size: 0.85em;
-    }
-
-    .contact-section {
-        padding: 1rem;
     }
 }

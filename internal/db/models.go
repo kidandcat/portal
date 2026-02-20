@@ -22,12 +22,27 @@ type Project struct {
 	CreatedAt time.Time
 }
 
-type Page struct {
+type Element struct {
 	ID        int64
 	ProjectID int64
-	Title     string
+	Type      string
 	Content   string
-	SortOrder int
+	X         float64
+	Y         float64
+	Width     float64
+	Height    float64
+	Style     string
+	CreatedAt time.Time
+}
+
+type Comment struct {
+	ID        int64
+	ProjectID int64
+	UserEmail string
+	Content   string
+	X         float64
+	Y         float64
+	Resolved  bool
 	CreatedAt time.Time
 }
 
@@ -265,11 +280,11 @@ func GetMessagesByProject(projectID int64) ([]Message, error) {
 	return messages, nil
 }
 
-// Pages
+// Elements
 
-func GetPagesByProject(projectID int64) ([]Page, error) {
+func GetElementsByProject(projectID int64) ([]Element, error) {
 	rows, err := DB.Query(
-		"SELECT id, project_id, title, content, sort_order, created_at FROM pages WHERE project_id = ? ORDER BY sort_order ASC",
+		"SELECT id, project_id, type, content, x, y, width, height, style, created_at FROM elements WHERE project_id = ? ORDER BY created_at ASC",
 		projectID,
 	)
 	if err != nil {
@@ -277,13 +292,52 @@ func GetPagesByProject(projectID int64) ([]Page, error) {
 	}
 	defer rows.Close()
 
-	var pages []Page
+	var elements []Element
 	for rows.Next() {
-		var p Page
-		if err := rows.Scan(&p.ID, &p.ProjectID, &p.Title, &p.Content, &p.SortOrder, &p.CreatedAt); err != nil {
+		var e Element
+		if err := rows.Scan(&e.ID, &e.ProjectID, &e.Type, &e.Content, &e.X, &e.Y, &e.Width, &e.Height, &e.Style, &e.CreatedAt); err != nil {
 			return nil, err
 		}
-		pages = append(pages, p)
+		elements = append(elements, e)
 	}
-	return pages, nil
+	return elements, nil
+}
+
+// Comments
+
+func GetCommentsByProject(projectID int64) ([]Comment, error) {
+	rows, err := DB.Query(
+		"SELECT id, project_id, user_email, content, x, y, resolved, created_at FROM comments WHERE project_id = ? ORDER BY created_at ASC",
+		projectID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var c Comment
+		if err := rows.Scan(&c.ID, &c.ProjectID, &c.UserEmail, &c.Content, &c.X, &c.Y, &c.Resolved, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		comments = append(comments, c)
+	}
+	return comments, nil
+}
+
+func CreateComment(projectID int64, userEmail, content string, x, y float64) (int64, error) {
+	res, err := DB.Exec(
+		"INSERT INTO comments (project_id, user_email, content, x, y) VALUES (?, ?, ?, ?, ?)",
+		projectID, userEmail, content, x, y,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+func ResolveComment(id, projectID int64) error {
+	_, err := DB.Exec("UPDATE comments SET resolved = 1 WHERE id = ? AND project_id = ?", id, projectID)
+	return err
 }

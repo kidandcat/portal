@@ -2,27 +2,28 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kidandcat/portal/internal/auth"
 	"github.com/kidandcat/portal/internal/config"
 	"github.com/kidandcat/portal/internal/db"
-	"github.com/yuin/goldmark"
 )
 
 var templates *template.Template
 
 func Init(templateDir string) {
 	funcMap := template.FuncMap{
-		"markdown": func(content string) template.HTML {
-			var buf strings.Builder
-			if err := goldmark.Convert([]byte(content), &buf); err != nil {
-				return template.HTML("<p>Error rendering markdown</p>")
-			}
-			return template.HTML(buf.String())
+		"json": func(v any) template.JS {
+			b, _ := json.Marshal(v)
+			return template.JS(b)
+		},
+		"inc": func(i int) int {
+			return i + 1
 		},
 	}
 	templates = template.Must(template.New("").Funcs(funcMap).ParseGlob(templateDir + "/*.html"))
@@ -44,6 +45,8 @@ func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
 	mux.HandleFunc("GET /auth/check-status", handleCheckStatus(cfg))
 	mux.HandleFunc("POST /auth/logout", handleLogout)
 	mux.HandleFunc("GET /p/{slug}", handleProject(cfg))
+	mux.HandleFunc("POST /p/{slug}/comment", handleCreateComment(cfg))
+	mux.HandleFunc("POST /p/{slug}/comment/{id}/resolve", handleResolveComment(cfg))
 	mux.HandleFunc("POST /p/{slug}/contact", handleContact(cfg))
 }
 
@@ -247,16 +250,113 @@ func handleProject(cfg config.Config) http.HandlerFunc {
 			return
 		}
 
-		pages, err := db.GetPagesByProject(project.ID)
+		elements, err := db.GetElementsByProject(project.ID)
 		if err != nil {
-			log.Printf("error getting pages: %v", err)
+			log.Printf("error getting elements: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+
+		comments, err := db.GetCommentsByProject(project.ID)
+		if err != nil {
+			log.Printf("error getting comments: %v", err)
 			http.Error(w, "Internal error", http.StatusInternalServerError)
 			return
 		}
 
 		data := brandingData(cfg)
 		data["Project"] = project
-		data["Pages"] = pages
+		data["Elements"] = elements
+		data["Comments"] = comments
 		templates.ExecuteTemplate(w, "project.html", data)
+	}
+}
+
+func handleCreateComment(_ config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slug := r.PathValue("slug")
+		project, err := db.GetProjectBySlug(slug)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		content := strings.TrimSpace(r.FormValue("content"))
+		email := strings.TrimSpace(r.FormValue("email"))
+		xStr := r.FormValue("x")
+		yStr := r.FormValue("y")
+
+		if content == "" {
+			http.Error(w, "Content is required", http.StatusBadRequest)
+			return
+		}
+
+		x, err := strconv.ParseFloat(xStr, 64)
+		if err != nil {
+			http.Error(w, "Invalid x coordinate", http.StatusBadRequest)
+			return
+		}
+		y, err := strconv.ParseFloat(yStr, 64)
+		if err != nil {
+			http.Error(w, "Invalid y coordinate", http.StatusBadRequest)
+			return
+		}
+
+		id, err := db.CreateComment(project.ID, email, content, x, y)
+		if err != nil {
+			log.Printf("error creating comment: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Return the new comment pin + tooltip as HTML
+		comments, _ := db.GetCommentsByProject(project.ID)
+		idx := len(comments)
+		for i, c := range comments {
+			if c.ID == id {
+				idx = i + 1
+				break
+			}
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, `<div class="comment-pin" data-id="%d" style="left:%.0fpx;top:%.0fpx">
+			<span class="pin-number">%d</span>
+			<div class="comment-tooltip">
+				<div class="comment-meta">%s</div>
+				<div class="comment-text">%s</div>
+				<form hx-post="/p/%s/comment/%d/resolve" hx-target="closest .comment-pin" hx-swap="outerHTML">
+					<button type="submit" class="resolve-btn">Resolve</button>
+				</form>
+			</div>
+		</div>`, id, x, y, idx, template.HTMLEscapeString(email), template.HTMLEscapeString(content), slug, id)
+	}
+}
+
+func handleResolveComment(_ config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slug := r.PathValue("slug")
+		project, err := db.GetProjectBySlug(slug)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		idStr := r.PathValue("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid comment ID", http.StatusBadRequest)
+			return
+		}
+
+		if err := db.ResolveComment(id, project.ID); err != nil {
+			log.Printf("error resolving comment: %v", err)
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Return empty to remove the pin
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(""))
 	}
 }

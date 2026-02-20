@@ -13,38 +13,172 @@
         <div class="container header-inner">
             <h1><a href="/">{{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.AppName}}" class="header-logo">{{else}}{{.AppName}}{{end}}</a></h1>
             <nav>
+                <span class="project-name">{{.Project.Name}}</span>
+                <label class="toggle-resolved">
+                    <input type="checkbox" id="show-resolved"> Show resolved
+                </label>
                 <a href="/">Projects</a>
             </nav>
         </div>
     </header>
-    <main class="container">
-        <h2>{{.Project.Name}}</h2>
-        {{if .Pages}}
-        <div class="pages">
-            {{range .Pages}}
-            <article class="page">
-                <h3>{{.Title}}</h3>
-                <div class="page-content">
-                    {{markdown .Content}}
-                </div>
-            </article>
-            {{end}}
-        </div>
-        {{else}}
-        <p class="empty">No pages yet.</p>
-        {{end}}
 
-        <section class="contact-section">
-            <h3>Contact</h3>
-            <form hx-post="/p/{{.Project.Slug}}/contact" hx-target="#contact-result" hx-swap="innerHTML">
-                <input type="text" name="name" placeholder="Your name" style="width:100%;padding:0.75rem 1rem;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;margin-bottom:0.5rem;">
-                <input type="email" name="email" placeholder="Your email" style="width:100%;padding:0.75rem 1rem;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;margin-bottom:0.5rem;">
-                <textarea name="message" placeholder="Your message..." required></textarea>
-                <button type="submit">Send message</button>
-            </form>
-            <div id="contact-result"></div>
-        </section>
-    </main>
+    <div id="canvas-viewport">
+        <div id="canvas">
+            {{range .Elements}}
+            <div class="canvas-element canvas-el-{{.Type}}" data-id="{{.ID}}"
+                 style="left:{{.X}}px; top:{{.Y}}px; width:{{.Width}}px; height:{{.Height}}px;">
+                {{if eq .Type "image"}}
+                    <img src="{{.Content}}" alt="" draggable="false">
+                {{else if eq .Type "heading"}}
+                    <h2>{{.Content}}</h2>
+                {{else if eq .Type "text"}}
+                    <p>{{.Content}}</p>
+                {{else if eq .Type "box"}}
+                    <div class="box-content" style='{{.Style}}'>{{.Content}}</div>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{range $i, $c := .Comments}}
+            <div class="comment-pin{{if $c.Resolved}} resolved{{end}}" data-id="{{$c.ID}}" style="left:{{$c.X}}px;top:{{$c.Y}}px">
+                <span class="pin-number">{{$i | inc}}</span>
+                <div class="comment-tooltip">
+                    <div class="comment-meta">{{$c.UserEmail}}</div>
+                    <div class="comment-text">{{$c.Content}}</div>
+                    {{if not $c.Resolved}}
+                    <form hx-post="/p/{{$.Project.Slug}}/comment/{{$c.ID}}/resolve" hx-target="closest .comment-pin" hx-swap="outerHTML">
+                        <button type="submit" class="resolve-btn">Resolve</button>
+                    </form>
+                    {{else}}
+                    <div class="resolved-label">Resolved</div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            <div id="new-comments"></div>
+        </div>
+    </div>
+
+    <!-- Comment input popup -->
+    <div id="comment-form-popup" class="hidden">
+        <form id="comment-form" hx-post="/p/{{.Project.Slug}}/comment" hx-target="#new-comments" hx-swap="beforeend"
+              hx-on::after-request="closeCommentForm()">
+            <input type="hidden" name="x" id="comment-x">
+            <input type="hidden" name="y" id="comment-y">
+            <input type="text" name="email" placeholder="Your email" id="comment-email">
+            <textarea name="content" placeholder="Leave a comment..." required id="comment-content" rows="3"></textarea>
+            <div class="comment-form-actions">
+                <button type="button" class="cancel-btn" onclick="closeCommentForm()">Cancel</button>
+                <button type="submit" class="submit-btn">Post</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    (function() {
+        const viewport = document.getElementById('canvas-viewport');
+        const canvas = document.getElementById('canvas');
+        const popup = document.getElementById('comment-form-popup');
+        const showResolved = document.getElementById('show-resolved');
+
+        // Pan state
+        let isPanning = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        // Center the viewport initially
+        const centerCanvas = () => {
+            // Find bounds of all elements
+            const elements = canvas.querySelectorAll('.canvas-element, .comment-pin');
+            if (elements.length === 0) {
+                viewport.scrollLeft = 4000;
+                viewport.scrollTop = 4000;
+                return;
+            }
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            elements.forEach(el => {
+                const x = parseFloat(el.style.left);
+                const y = parseFloat(el.style.top);
+                const w = el.offsetWidth || 200;
+                const h = el.offsetHeight || 100;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + w);
+                maxY = Math.max(maxY, y + h);
+            });
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            viewport.scrollLeft = centerX - viewport.clientWidth / 2 + 5000;
+            viewport.scrollTop = centerY - viewport.clientHeight / 2 + 5000;
+        };
+        centerCanvas();
+
+        // Middle-mouse or space+drag to pan
+        viewport.addEventListener('mousedown', (e) => {
+            if (e.button === 1 || (e.button === 0 && e.altKey)) {
+                isPanning = true;
+                startX = e.pageX;
+                startY = e.pageY;
+                scrollLeft = viewport.scrollLeft;
+                scrollTop = viewport.scrollTop;
+                viewport.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            const dx = e.pageX - startX;
+            const dy = e.pageY - startY;
+            viewport.scrollLeft = scrollLeft - dx;
+            viewport.scrollTop = scrollTop - dy;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+            viewport.style.cursor = '';
+        });
+
+        // Click on canvas to add comment
+        canvas.addEventListener('click', (e) => {
+            if (isPanning) return;
+            if (e.target.closest('.comment-pin') || e.target.closest('.canvas-element') || e.target.closest('#comment-form-popup')) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            document.getElementById('comment-x').value = Math.round(x);
+            document.getElementById('comment-y').value = Math.round(y);
+
+            popup.style.left = e.clientX + 'px';
+            popup.style.top = e.clientY + 'px';
+            popup.classList.remove('hidden');
+            document.getElementById('comment-content').focus();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeCommentForm();
+        });
+
+        window.closeCommentForm = function() {
+            popup.classList.add('hidden');
+            document.getElementById('comment-form').reset();
+        };
+
+        // Toggle resolved comments
+        showResolved.addEventListener('change', () => {
+            document.querySelectorAll('.comment-pin.resolved').forEach(pin => {
+                pin.style.display = showResolved.checked ? '' : 'none';
+            });
+        });
+        // Initial hide
+        document.querySelectorAll('.comment-pin.resolved').forEach(pin => {
+            pin.style.display = 'none';
+        });
+    })();
+    </script>
 </body>
 </html>
 {{end}}
