@@ -32,6 +32,7 @@ func main() {
 
 	// API routes
 	api.RegisterRoutes(mux, cfg)
+	api.RegisterAuthRoutes(mux, cfg)
 
 	// go-app handler serves the WASM app
 	appHandler := &app.Handler{
