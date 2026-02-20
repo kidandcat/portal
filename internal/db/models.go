@@ -225,6 +225,46 @@ func GetProjectBySlug(slug string) (*Project, error) {
 	return &p, nil
 }
 
+// Messages
+
+type Message struct {
+	ID        int64
+	ProjectID int64
+	Name      string
+	Email     string
+	Content   string
+	CreatedAt time.Time
+}
+
+func CreateMessage(projectID int64, name, email, content string) error {
+	_, err := DB.Exec(
+		"INSERT INTO messages (project_id, name, email, content) VALUES (?, ?, ?, ?)",
+		projectID, name, email, content,
+	)
+	return err
+}
+
+func GetMessagesByProject(projectID int64) ([]Message, error) {
+	rows, err := DB.Query(
+		"SELECT id, project_id, name, email, content, created_at FROM messages WHERE project_id = ? ORDER BY created_at DESC",
+		projectID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var m Message
+		if err := rows.Scan(&m.ID, &m.ProjectID, &m.Name, &m.Email, &m.Content, &m.CreatedAt); err != nil {
+			return nil, err
+		}
+		messages = append(messages, m)
+	}
+	return messages, nil
+}
+
 // Pages
 
 func GetPagesByProject(projectID int64) ([]Page, error) {

@@ -44,6 +44,7 @@ func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
 	mux.HandleFunc("GET /auth/check-status", handleCheckStatus(cfg))
 	mux.HandleFunc("POST /auth/logout", handleLogout)
 	mux.HandleFunc("GET /p/{slug}", handleProject(cfg))
+	mux.HandleFunc("POST /p/{slug}/contact", handleContact(cfg))
 }
 
 func handleIndex(cfg config.Config) http.HandlerFunc {
@@ -199,6 +200,37 @@ func handleCheckStatus(_ config.Config) http.HandlerFunc {
 func handleLogout(w http.ResponseWriter, r *http.Request) {
 	auth.Logout(w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func handleContact(_ config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slug := r.PathValue("slug")
+		project, err := db.GetProjectBySlug(slug)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		name := strings.TrimSpace(r.FormValue("name"))
+		email := strings.TrimSpace(r.FormValue("email"))
+		content := strings.TrimSpace(r.FormValue("message"))
+
+		if content == "" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<p class="contact-error">Message is required.</p>`))
+			return
+		}
+
+		if err := db.CreateMessage(project.ID, name, email, content); err != nil {
+			log.Printf("error saving message: %v", err)
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<p class="contact-error">Error sending message. Please try again.</p>`))
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`<p class="contact-success">Message sent successfully!</p>`))
+	}
 }
 
 func handleProject(cfg config.Config) http.HandlerFunc {

@@ -66,6 +66,14 @@ func migrate() error {
 			token TEXT NOT NULL UNIQUE,
 			expires_at DATETIME NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			name TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL DEFAULT '',
+			content TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, m := range migrations {
