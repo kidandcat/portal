@@ -1,0 +1,25 @@
+{{define "approved.html"}}
+<!DOCTYPE html>
+<html lang="en" style="--primary: {{.PrimaryColor}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.AppName}} - Session Approved</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <main class="container auth-container">
+        {{if .LogoURL}}
+        <img src="{{.LogoURL}}" alt="{{.AppName}}" class="auth-logo">
+        {{else}}
+        <h1>{{.AppName}}</h1>
+        {{end}}
+        <div class="approved-card">
+            <div class="approved-icon">&#10003;</div>
+            <h2>Session approved</h2>
+            <p>You can close this tab and return to where you were logging in.</p>
+        </div>
+    </main>
+</body>
+</html>
+{{end}}

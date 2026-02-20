@@ -10,6 +10,7 @@ type Config struct {
 	BaseURL  string
 	DataDir  string
 	Email    EmailConfig
+	Branding BrandingConfig
 }
 
 type EmailConfig struct {
@@ -20,6 +21,12 @@ type EmailConfig struct {
 	SMTPPort     string
 	SMTPUser     string
 	SMTPPass     string
+}
+
+type BrandingConfig struct {
+	AppName      string
+	PrimaryColor string
+	LogoURL      string
 }
 
 func getEnv(key, fallback string) string {
@@ -42,6 +49,11 @@ func Load(flagAddr, flagBaseURL, flagDataDir string) Config {
 			SMTPPort:     getEnv("SMTP_PORT", "587"),
 			SMTPUser:     getEnv("SMTP_USER", ""),
 			SMTPPass:     getEnv("SMTP_PASS", ""),
+		},
+		Branding: BrandingConfig{
+			AppName:      getEnv("PORTAL_APP_NAME", "Portal"),
+			PrimaryColor: getEnv("PORTAL_PRIMARY_COLOR", "#1a1a1a"),
+			LogoURL:      getEnv("PORTAL_LOGO_URL", ""),
 		},
 	}
 }

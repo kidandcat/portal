@@ -1,3 +1,7 @@
+:root {
+    --primary: #1a1a1a;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -32,8 +36,13 @@ header {
 
 header h1 a {
     text-decoration: none;
-    color: #1a1a1a;
+    color: var(--primary);
     font-size: 1.25rem;
+}
+
+.header-logo {
+    height: 2rem;
+    vertical-align: middle;
 }
 
 nav {
@@ -49,7 +58,7 @@ nav a {
 }
 
 nav a:hover {
-    color: #1a1a1a;
+    color: var(--primary);
 }
 
 .btn-link {
@@ -62,7 +71,7 @@ nav a:hover {
 }
 
 .btn-link:hover {
-    color: #1a1a1a;
+    color: var(--primary);
 }
 
 /* Auth */
@@ -75,6 +84,12 @@ nav a:hover {
 .auth-container h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.auth-logo {
+    height: 3rem;
+    margin-bottom: 1rem;
 }
 
 .auth-container p {
@@ -97,12 +112,12 @@ input[type="email"] {
 }
 
 input[type="email"]:focus {
-    border-color: #333;
+    border-color: var(--primary);
 }
 
 button[type="submit"] {
     padding: 0.75rem 1rem;
-    background: #1a1a1a;
+    background: var(--primary);
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -111,12 +126,48 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-    background: #333;
+    opacity: 0.85;
 }
 
 .success {
     color: #16a34a;
     margin-top: 1rem;
+}
+
+.error {
+    color: #dc2626;
+    margin-top: 1rem;
+}
+
+.waiting-hint {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Approved page */
+.approved-card {
+    margin-top: 2rem;
+}
+
+.approved-icon {
+    width: 3rem;
+    height: 3rem;
+    line-height: 3rem;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: #16a34a;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.approved-card h2 {
+    margin-bottom: 0.5rem;
+}
+
+.approved-card p {
+    color: #666;
 }
 
 /* Projects */
@@ -134,7 +185,7 @@ button[type="submit"]:hover {
 
 .project-list a {
     text-decoration: none;
-    color: #1a1a1a;
+    color: var(--primary);
     font-weight: 500;
 }
 

@@ -74,7 +74,7 @@ func CreateMagicToken(email string) (string, error) {
 	expires := time.Now().Add(15 * time.Minute)
 
 	_, err := DB.Exec(
-		"INSERT INTO magic_tokens (email, token, expires_at) VALUES (?, ?, ?)",
+		"INSERT INTO magic_tokens (email, token, expires_at, status) VALUES (?, ?, ?, 'pending')",
 		email, token, expires,
 	)
 	if err != nil {
@@ -83,13 +83,14 @@ func CreateMagicToken(email string) (string, error) {
 	return token, nil
 }
 
-func ValidateMagicToken(token string) (string, error) {
+func ApproveMagicToken(token string) (string, error) {
 	var email string
 	var used int
+	var status string
 	var expiresAt time.Time
 	err := DB.QueryRow(
-		"SELECT email, used, expires_at FROM magic_tokens WHERE token = ?", token,
-	).Scan(&email, &used, &expiresAt)
+		"SELECT email, used, status, expires_at FROM magic_tokens WHERE token = ?", token,
+	).Scan(&email, &used, &status, &expiresAt)
 	if err != nil {
 		return "", fmt.Errorf("token not found")
 	}
@@ -100,12 +101,35 @@ func ValidateMagicToken(token string) (string, error) {
 		return "", fmt.Errorf("token expired")
 	}
 
-	_, err = DB.Exec("UPDATE magic_tokens SET used = 1 WHERE token = ?", token)
+	_, err = DB.Exec("UPDATE magic_tokens SET status = 'approved' WHERE token = ?", token)
 	if err != nil {
-		return "", fmt.Errorf("mark token used: %w", err)
+		return "", fmt.Errorf("approve token: %w", err)
 	}
 
 	return email, nil
+}
+
+func CheckMagicTokenStatus(token string) (status string, email string, err error) {
+	var used int
+	var expiresAt time.Time
+	err = DB.QueryRow(
+		"SELECT email, used, status, expires_at FROM magic_tokens WHERE token = ?", token,
+	).Scan(&email, &used, &status, &expiresAt)
+	if err != nil {
+		return "", "", fmt.Errorf("token not found")
+	}
+	if used != 0 {
+		return "used", email, nil
+	}
+	if time.Now().After(expiresAt) {
+		return "expired", email, nil
+	}
+	return status, email, nil
+}
+
+func MarkMagicTokenUsed(token string) error {
+	_, err := DB.Exec("UPDATE magic_tokens SET used = 1 WHERE token = ?", token)
+	return err
 }
 
 // Sessions

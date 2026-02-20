@@ -57,7 +57,8 @@ func migrate() error {
 			email TEXT NOT NULL,
 			token TEXT NOT NULL UNIQUE,
 			expires_at DATETIME NOT NULL,
-			used INTEGER NOT NULL DEFAULT 0
+			used INTEGER NOT NULL DEFAULT 0,
+			status TEXT NOT NULL DEFAULT 'pending'
 		)`,
 		`CREATE TABLE IF NOT EXISTS sessions (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,6 +73,9 @@ func migrate() error {
 			return fmt.Errorf("exec migration: %w", err)
 		}
 	}
+
+	// Add status column to existing magic_tokens tables
+	DB.Exec("ALTER TABLE magic_tokens ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'")
 
 	return nil
 }

@@ -19,8 +19,14 @@ type resendRequest struct {
 
 func SendMagicLink(email, token string, cfg config.Config) error {
 	link := fmt.Sprintf("%s/auth/verify?token=%s", cfg.BaseURL, token)
+	appName := cfg.Branding.AppName
 	subject := "Your login link"
-	html := fmt.Sprintf(`<p>Click the link below to sign in:</p><p><a href="%s">Sign in to Portal</a></p><p>This link expires in 15 minutes.</p>`, link)
+	html := fmt.Sprintf(
+		`<p>Click the link below to approve your sign-in:</p>`+
+			`<p><a href="%s">Approve sign-in to %s</a></p>`+
+			`<p>This link expires in 15 minutes.</p>`,
+		link, appName,
+	)
 
 	if cfg.Email.SMTPEnabled {
 		return sendViaSMTP(cfg.Email, email, subject, html)

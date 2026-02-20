@@ -1,16 +1,31 @@
 {{define "login.html"}}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="--primary: {{.PrimaryColor}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal - Sign In</title>
+    <title>{{.AppName}} - Sign In</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script>
+        document.addEventListener('htmx:beforeSwap', function(e) {
+            if (e.detail.xhr.getResponseHeader('Content-Type')?.includes('application/json')) {
+                var data = JSON.parse(e.detail.xhr.responseText);
+                if (data.status === 'approved' && data.redirect) {
+                    e.detail.shouldSwap = false;
+                    window.location.href = data.redirect;
+                }
+            }
+        });
+    </script>
 </head>
 <body>
     <main class="container auth-container">
-        <h1>Portal</h1>
+        {{if .LogoURL}}
+        <img src="{{.LogoURL}}" alt="{{.AppName}}" class="auth-logo">
+        {{else}}
+        <h1>{{.AppName}}</h1>
+        {{end}}
         <p>Sign in with your email</p>
         <form hx-post="/auth/magic-link" hx-target="#result" hx-swap="innerHTML">
             <input type="email" name="email" placeholder="you@example.com" required autofocus>

@@ -1,17 +1,17 @@
 {{define "project.html"}}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="--primary: {{.PrimaryColor}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Project.Name}} - Portal</title>
+    <title>{{.Project.Name}} - {{.AppName}}</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
     <header>
         <div class="container header-inner">
-            <h1><a href="/">Portal</a></h1>
+            <h1><a href="/">{{if .LogoURL}}<img src="{{.LogoURL}}" alt="{{.AppName}}" class="header-logo">{{else}}{{.AppName}}{{end}}</a></h1>
             <nav>
                 <a href="/">Projects</a>
             </nav>
