@@ -1,0 +1,39 @@
+{{define "projects.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal - Projects</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+    <header>
+        <div class="container header-inner">
+            <h1><a href="/">Portal</a></h1>
+            <nav>
+                <span>{{.User.Email}}</span>
+                <form method="POST" action="/auth/logout" style="display:inline">
+                    <button type="submit" class="btn-link">Logout</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <h2>Your Projects</h2>
+        {{if .Projects}}
+        <ul class="project-list">
+            {{range .Projects}}
+            <li>
+                <a href="/p/{{.Slug}}">{{.Name}}</a>
+            </li>
+            {{end}}
+        </ul>
+        {{else}}
+        <p class="empty">No projects yet.</p>
+        {{end}}
+    </main>
+</body>
+</html>
+{{end}}

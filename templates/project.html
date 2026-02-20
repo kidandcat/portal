@@ -1,0 +1,39 @@
+{{define "project.html"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Project.Name}} - Portal</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+    <header>
+        <div class="container header-inner">
+            <h1><a href="/">Portal</a></h1>
+            <nav>
+                <a href="/">Projects</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <h2>{{.Project.Name}}</h2>
+        {{if .Pages}}
+        <div class="pages">
+            {{range .Pages}}
+            <article class="page">
+                <h3>{{.Title}}</h3>
+                <div class="page-content">
+                    {{markdown .Content}}
+                </div>
+            </article>
+            {{end}}
+        </div>
+        {{else}}
+        <p class="empty">No pages yet.</p>
+        {{end}}
+    </main>
+</body>
+</html>
+{{end}}
