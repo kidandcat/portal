@@ -57,9 +57,8 @@ func main() {
 		config.Addr = ":8080"
 	}
 
-	http.HandleFunc("/login", handleLogin)
 	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/", handleProject)
+	http.HandleFunc("/", handleRoute)
 
 	log.Printf("Portal listening on %s", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, nil))
@@ -111,22 +110,52 @@ func findProject(slug string) *Project {
 	return nil
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request) {
+func handleRoute(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	parts := strings.SplitN(path, "/", 3)
+	slug := parts[0]
+
+	project := findProject(slug)
+	if project == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Check if this is a login route
+	if len(parts) >= 2 && parts[1] == "login" {
+		handleLogin(w, r, project)
+		return
+	}
+
+	// Serve project files (requires session)
+	session := getSession(r)
+	if session == nil || session.Slug != slug {
+		http.Redirect(w, r, fmt.Sprintf("/%s/login", slug), http.StatusSeeOther)
+		return
+	}
+
+	http.StripPrefix("/"+slug, http.FileServer(http.Dir(project.Path))).ServeHTTP(w, r)
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request, project *Project) {
 	switch r.Method {
 	case http.MethodGet:
 		errMsg := r.URL.Query().Get("error")
-		renderLogin(w, errMsg)
+		renderLogin(w, project, errMsg)
 	case http.MethodPost:
-		slug := r.FormValue("project")
 		password := r.FormValue("password")
 
-		project := findProject(slug)
-		if project == nil || project.Password != password {
-			http.Redirect(w, r, "/login?error=Invalid+credentials", http.StatusSeeOther)
+		if project.Password != password {
+			http.Redirect(w, r, fmt.Sprintf("/%s/login?error=Contraseña+incorrecta", project.Slug), http.StatusSeeOther)
 			return
 		}
 
-		token := createSession(slug)
+		token := createSession(project.Slug)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "portal_session",
 			Value:    token,
@@ -135,7 +164,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
-		http.Redirect(w, r, fmt.Sprintf("/%s/", slug), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("/%s/", project.Slug), http.StatusSeeOther)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -154,39 +183,21 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 		Path:   "/",
 		MaxAge: -1,
 	})
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	// Redirect to referrer's project login if possible
+	ref := r.Referer()
+	if ref != "" {
+		http.Redirect(w, r, ref, http.StatusSeeOther)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Logged out"))
 }
 
-func handleProject(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/")
-	if path == "" {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	parts := strings.SplitN(path, "/", 2)
-	slug := parts[0]
-
-	project := findProject(slug)
-	if project == nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	session := getSession(r)
-	if session == nil || session.Slug != slug {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	http.StripPrefix("/"+slug, http.FileServer(http.Dir(project.Path))).ServeHTTP(w, r)
-}
-
-func renderLogin(w http.ResponseWriter, errMsg string) {
+func renderLogin(w http.ResponseWriter, project *Project, errMsg string) {
 	tmpl := template.Must(template.New("login").Parse(loginHTML))
 	tmpl.Execute(w, map[string]interface{}{
-		"Projects": config.Projects,
-		"Error":    errMsg,
+		"Project": project,
+		"Error":   errMsg,
 	})
 }
 
@@ -195,7 +206,7 @@ var loginHTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal - Menta Systems</title>
+<title>Acceso a {{.Project.Name}} - Menta Systems</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -248,7 +259,7 @@ var loginHTML = `<!DOCTYPE html>
     margin-bottom: 6px;
   }
 
-  select, input[type="password"] {
+  input[type="password"] {
     width: 100%;
     padding: 10px 14px;
     border: 1.5px solid #d1dbe5;
@@ -260,7 +271,7 @@ var loginHTML = `<!DOCTYPE html>
     outline: none;
   }
 
-  select:focus, input[type="password"]:focus {
+  input[type="password"]:focus {
     border-color: #0d5c84;
     box-shadow: 0 0 0 3px rgba(13, 92, 132, 0.1);
   }
@@ -296,7 +307,7 @@ var loginHTML = `<!DOCTYPE html>
 <body>
   <div class="login-card">
     <div class="logo">
-      <h1>Portal</h1>
+      <h1>Acceso a {{.Project.Name}}</h1>
       <p>Menta Systems</p>
     </div>
 
@@ -304,23 +315,13 @@ var loginHTML = `<!DOCTYPE html>
     <div class="error">{{.Error}}</div>
     {{end}}
 
-    <form method="POST" action="/login">
+    <form method="POST" action="/{{.Project.Slug}}/login">
       <div class="form-group">
-        <label for="project">Project</label>
-        <select name="project" id="project" required>
-          <option value="" disabled selected>Select a project</option>
-          {{range .Projects}}
-          <option value="{{.Slug}}">{{.Name}}</option>
-          {{end}}
-        </select>
+        <label for="password">Contraseña</label>
+        <input type="password" name="password" id="password" placeholder="Introduce la contraseña" required autofocus>
       </div>
 
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" name="password" id="password" placeholder="Enter password" required>
-      </div>
-
-      <button type="submit">Sign In</button>
+      <button type="submit">Entrar</button>
     </form>
   </div>
 </body>
