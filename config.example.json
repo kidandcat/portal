@@ -1,0 +1,11 @@
+{
+  "addr": ":8080",
+  "projects": [
+    {
+      "slug": "myproject",
+      "name": "My Project",
+      "password": "changeme",
+      "path": "/path/to/project/files/"
+    }
+  ]
+}

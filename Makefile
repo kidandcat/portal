@@ -1,15 +1,10 @@
-.PHONY: build run clean wasm server
+.PHONY: build run clean
 
-build: wasm server
-
-wasm:
-	GOARCH=wasm GOOS=js go build -o web/app.wasm ./app/
-
-server:
+build:
 	go build -o portal .
 
 run: build
 	./portal
 
 clean:
-	rm -f portal web/app.wasm
+	rm -f portal

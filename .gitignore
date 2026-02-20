@@ -1,8 +1,2 @@
-data/
 portal
-*.db
-*.db-wal
-*.db-shm
-web/app.wasm
-portal
-data/
+config.json
