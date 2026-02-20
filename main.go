@@ -5,9 +5,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/kidandcat/portal/internal/api"
 	"github.com/kidandcat/portal/internal/config"
 	"github.com/kidandcat/portal/internal/db"
-	"github.com/kidandcat/portal/internal/handlers"
+	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
 func main() {
@@ -23,13 +24,26 @@ func main() {
 	}
 	defer db.Close()
 
-	handlers.Init("templates")
+	if err := db.SeedDefaultProject(); err != nil {
+		log.Printf("warning: could not seed default project: %v", err)
+	}
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	handlers.RegisterRoutes(mux, cfg)
 
-	log.Printf("listening on %s (base URL: %s, SMTP: %v)", cfg.Addr, cfg.BaseURL, cfg.Email.SMTPEnabled)
+	// API routes
+	api.RegisterRoutes(mux, cfg)
+
+	// go-app handler serves the WASM app
+	appHandler := &app.Handler{
+		Name:        "Portal",
+		ShortName:   "Portal",
+		Description: "Canvas collaboration tool",
+		Styles:      []string{"/web/app.css"},
+		Title:       "Portal",
+	}
+	mux.Handle("/", appHandler)
+
+	log.Printf("listening on %s (base URL: %s)", cfg.Addr, cfg.BaseURL)
 	if err := http.ListenAndServe(cfg.Addr, mux); err != nil {
 		log.Fatalf("server error: %v", err)
 	}

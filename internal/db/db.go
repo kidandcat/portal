@@ -41,28 +41,38 @@ func migrate() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			slug TEXT NOT NULL UNIQUE,
-			owner_id INTEGER NOT NULL REFERENCES users(id),
+			owner_id INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS elements (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-			type TEXT NOT NULL DEFAULT 'text',
+			type TEXT NOT NULL DEFAULT 'note',
 			content TEXT NOT NULL DEFAULT '',
 			x REAL NOT NULL DEFAULT 0,
 			y REAL NOT NULL DEFAULT 0,
 			width REAL NOT NULL DEFAULT 200,
-			height REAL NOT NULL DEFAULT 100,
+			height REAL NOT NULL DEFAULT 60,
+			completed INTEGER NOT NULL DEFAULT 0,
 			style TEXT NOT NULL DEFAULT '{}',
+			z_index INTEGER NOT NULL DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS connections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			from_id INTEGER NOT NULL REFERENCES elements(id) ON DELETE CASCADE,
+			to_id INTEGER NOT NULL REFERENCES elements(id) ON DELETE CASCADE,
+			color TEXT NOT NULL DEFAULT '#3b82f6'
 		)`,
 		`CREATE TABLE IF NOT EXISTS comments (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-			user_email TEXT NOT NULL DEFAULT '',
-			content TEXT NOT NULL,
+			element_id INTEGER REFERENCES elements(id) ON DELETE SET NULL,
 			x REAL NOT NULL DEFAULT 0,
 			y REAL NOT NULL DEFAULT 0,
+			content TEXT NOT NULL,
+			author TEXT NOT NULL DEFAULT '',
 			resolved INTEGER NOT NULL DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
@@ -80,14 +90,6 @@ func migrate() error {
 			token TEXT NOT NULL UNIQUE,
 			expires_at DATETIME NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS messages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-			name TEXT NOT NULL DEFAULT '',
-			email TEXT NOT NULL DEFAULT '',
-			content TEXT NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
 	}
 
 	for _, m := range migrations {
@@ -96,8 +98,9 @@ func migrate() error {
 		}
 	}
 
-	// Add status column to existing magic_tokens tables
-	DB.Exec("ALTER TABLE magic_tokens ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'")
+	// Add columns that may not exist on old tables
+	DB.Exec("ALTER TABLE elements ADD COLUMN completed INTEGER NOT NULL DEFAULT 0")
+	DB.Exec("ALTER TABLE elements ADD COLUMN z_index INTEGER NOT NULL DEFAULT 0")
 
 	return nil
 }

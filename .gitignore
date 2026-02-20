@@ -3,3 +3,6 @@ portal
 *.db
 *.db-wal
 *.db-shm
+web/app.wasm
+portal
+data/
