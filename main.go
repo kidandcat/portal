@@ -11,7 +11,15 @@ import (
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
+type placeholder struct {
+	app.Compo
+}
+
 func main() {
+	// Register routes server-side so go-app serves pages instead of 404
+	app.Route("/", func() app.Composer { return &placeholder{} })
+	app.RouteWithRegexp(`^/p/.+$`, func() app.Composer { return &placeholder{} })
+
 	addr := flag.String("addr", ":8080", "listen address")
 	baseURL := flag.String("base-url", "http://localhost:8080", "base URL for magic links")
 	dataDir := flag.String("data", "./data", "data directory")
