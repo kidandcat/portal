@@ -1,17 +1,15 @@
 package main
 
 import (
-	"crypto/rand"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
-	"time"
 )
 
 type Project struct {
@@ -26,18 +24,9 @@ type Config struct {
 	Projects []Project `json:"projects"`
 }
 
-type Session struct {
-	Token     string
-	Slug      string
-	ExpiresAt time.Time
-}
-
 var (
-	config   Config
-	sessions = struct {
-		sync.RWMutex
-		m map[string]Session
-	}{m: make(map[string]Session)}
+	config    Config
+	secretKey []byte
 )
 
 func main() {
@@ -57,48 +46,34 @@ func main() {
 		config.Addr = ":8080"
 	}
 
+	// Derive a secret key from all project passwords for cookie signing
+	h := sha256.New()
+	for _, p := range config.Projects {
+		h.Write([]byte(p.Password))
+	}
+	secretKey = h.Sum(nil)
+
 	http.HandleFunc("/logout", handleLogout)
+	http.HandleFunc("/login", handleLogin)
 	http.HandleFunc("/", handleRoute)
 
 	log.Printf("Portal listening on %s", config.Addr)
 	log.Fatal(http.ListenAndServe(config.Addr, nil))
 }
 
-func generateToken() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+func signSlug(slug string) string {
+	mac := hmac.New(sha256.New, secretKey)
+	mac.Write([]byte(slug))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func createSession(slug string) string {
-	token := generateToken()
-	sessions.Lock()
-	sessions.m[token] = Session{
-		Token:     token,
-		Slug:      slug,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
-	}
-	sessions.Unlock()
-	return token
-}
-
-func getSession(r *http.Request) *Session {
-	cookie, err := r.Cookie("portal_session")
-	if err != nil {
-		return nil
-	}
-	sessions.RLock()
-	s, ok := sessions.m[cookie.Value]
-	sessions.RUnlock()
-	if !ok || time.Now().After(s.ExpiresAt) {
-		if ok {
-			sessions.Lock()
-			delete(sessions.m, cookie.Value)
-			sessions.Unlock()
+func findProjectByPassword(password string) *Project {
+	for _, p := range config.Projects {
+		if p.Password == password {
+			return &p
 		}
-		return nil
 	}
-	return &s
+	return nil
 }
 
 func findProject(slug string) *Project {
@@ -110,103 +85,119 @@ func findProject(slug string) *Project {
 	return nil
 }
 
+func getSessionSlug(r *http.Request) string {
+	slugCookie, err := r.Cookie("portal_slug")
+	if err != nil {
+		return ""
+	}
+	sigCookie, err := r.Cookie("portal_sig")
+	if err != nil {
+		return ""
+	}
+	slug := slugCookie.Value
+	sig := sigCookie.Value
+	if signSlug(slug) != sig {
+		return ""
+	}
+	if findProject(slug) == nil {
+		return ""
+	}
+	return slug
+}
+
 func handleRoute(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/")
-	if path == "" {
-		http.NotFound(w, r)
+	slug := getSessionSlug(r)
+
+	if slug == "" {
+		// No valid session — show login
+		errMsg := r.URL.Query().Get("error")
+		renderLogin(w, errMsg)
 		return
 	}
-
-	parts := strings.SplitN(path, "/", 3)
-	slug := parts[0]
 
 	project := findProject(slug)
 	if project == nil {
-		http.NotFound(w, r)
+		// Project no longer exists, clear session
+		clearSessionCookies(w)
+		renderLogin(w, "")
 		return
 	}
 
-	// Check if this is a login route
-	if len(parts) >= 2 && parts[1] == "login" {
-		handleLogin(w, r, project)
-		return
+	// Serve project files from root
+	filePath := strings.TrimPrefix(r.URL.Path, "/")
+	if filePath == "" {
+		filePath = "index.html"
 	}
 
-	// Serve project files (requires session)
-	session := getSession(r)
-	if session == nil || session.Slug != slug {
-		http.Redirect(w, r, fmt.Sprintf("/%s/login", slug), http.StatusSeeOther)
-		return
-	}
-
-	http.StripPrefix("/"+slug, http.FileServer(http.Dir(project.Path))).ServeHTTP(w, r)
+	http.ServeFile(w, r, project.Path+"/"+filePath)
 }
 
-func handleLogin(w http.ResponseWriter, r *http.Request, project *Project) {
-	switch r.Method {
-	case http.MethodGet:
-		errMsg := r.URL.Query().Get("error")
-		renderLogin(w, project, errMsg)
-	case http.MethodPost:
-		password := r.FormValue("password")
-
-		if project.Password != password {
-			http.Redirect(w, r, fmt.Sprintf("/%s/login?error=Contraseña+incorrecta", project.Slug), http.StatusSeeOther)
-			return
-		}
-
-		token := createSession(project.Slug)
-		http.SetCookie(w, &http.Cookie{
-			Name:     "portal_session",
-			Value:    token,
-			Path:     "/",
-			MaxAge:   7 * 24 * 60 * 60,
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(w, r, fmt.Sprintf("/%s/", project.Slug), http.StatusSeeOther)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+
+	password := r.FormValue("password")
+	project := findProjectByPassword(password)
+	if project == nil {
+		http.Redirect(w, r, "/?error=Contrase%C3%B1a+incorrecta", http.StatusSeeOther)
+		return
+	}
+
+	sig := signSlug(project.Slug)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_slug",
+		Value:    project.Slug,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_sig",
+		Value:    sig,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("portal_session")
-	if err == nil {
-		sessions.Lock()
-		delete(sessions.m, cookie.Value)
-		sessions.Unlock()
-	}
+	clearSessionCookies(w)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func clearSessionCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
-		Name:   "portal_session",
+		Name:   "portal_slug",
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,
 	})
-	// Redirect to referrer's project login if possible
-	ref := r.Referer()
-	if ref != "" {
-		http.Redirect(w, r, ref, http.StatusSeeOther)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Logged out"))
+	http.SetCookie(w, &http.Cookie{
+		Name:   "portal_sig",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 }
 
-func renderLogin(w http.ResponseWriter, project *Project, errMsg string) {
+func renderLogin(w http.ResponseWriter, errMsg string) {
 	tmpl := template.Must(template.New("login").Parse(loginHTML))
 	tmpl.Execute(w, map[string]interface{}{
-		"Project": project,
-		"Error":   errMsg,
+		"Error": errMsg,
 	})
 }
 
 var loginHTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Acceso a {{.Project.Name}} - Menta Systems</title>
+<title>Portal de Clientes - Menta Systems</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -236,7 +227,7 @@ var loginHTML = `<!DOCTYPE html>
 
   .logo h1 {
     color: #0d5c84;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.5px;
   }
@@ -307,7 +298,7 @@ var loginHTML = `<!DOCTYPE html>
 <body>
   <div class="login-card">
     <div class="logo">
-      <h1>Acceso a {{.Project.Name}}</h1>
+      <h1>Portal de Clientes</h1>
       <p>Menta Systems</p>
     </div>
 
@@ -315,13 +306,13 @@ var loginHTML = `<!DOCTYPE html>
     <div class="error">{{.Error}}</div>
     {{end}}
 
-    <form method="POST" action="/{{.Project.Slug}}/login">
+    <form method="POST" action="/login">
       <div class="form-group">
         <label for="password">Contraseña</label>
         <input type="password" name="password" id="password" placeholder="Introduce la contraseña" required autofocus>
       </div>
 
-      <button type="submit">Entrar</button>
+      <button type="submit">Acceder</button>
     </form>
   </div>
 </body>
