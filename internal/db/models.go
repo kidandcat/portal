@@ -83,6 +83,25 @@ func CreateMagicToken(email string) (string, error) {
 	return token, nil
 }
 
+func ValidateMagicToken(token string) (string, error) {
+	var email string
+	var used int
+	var expiresAt time.Time
+	err := DB.QueryRow(
+		"SELECT email, used, expires_at FROM magic_tokens WHERE token = ?", token,
+	).Scan(&email, &used, &expiresAt)
+	if err != nil {
+		return "", fmt.Errorf("token not found")
+	}
+	if used != 0 {
+		return "", fmt.Errorf("token already used")
+	}
+	if time.Now().After(expiresAt) {
+		return "", fmt.Errorf("token expired")
+	}
+	return email, nil
+}
+
 func ApproveMagicToken(token string) (string, error) {
 	var email string
 	var used int

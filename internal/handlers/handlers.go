@@ -39,7 +39,8 @@ func brandingData(cfg config.Config) map[string]any {
 func RegisterRoutes(mux *http.ServeMux, cfg config.Config) {
 	mux.HandleFunc("GET /{$}", handleIndex(cfg))
 	mux.HandleFunc("POST /auth/magic-link", handleMagicLink(cfg))
-	mux.HandleFunc("GET /auth/verify", handleVerify(cfg))
+	mux.HandleFunc("GET /auth/verify", handleVerifyPage(cfg))
+	mux.HandleFunc("POST /auth/verify", handleVerifyApprove(cfg))
 	mux.HandleFunc("GET /auth/check-status", handleCheckStatus(cfg))
 	mux.HandleFunc("POST /auth/logout", handleLogout)
 	mux.HandleFunc("GET /p/{slug}", handleProject(cfg))
@@ -95,9 +96,31 @@ func handleMagicLink(cfg config.Config) http.HandlerFunc {
 	}
 }
 
-func handleVerify(cfg config.Config) http.HandlerFunc {
+func handleVerifyPage(cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.URL.Query().Get("token")
+		if token == "" {
+			http.Error(w, "Missing token", http.StatusBadRequest)
+			return
+		}
+
+		email, err := db.ValidateMagicToken(token)
+		if err != nil {
+			log.Printf("invalid token: %v", err)
+			http.Error(w, "Invalid or expired link", http.StatusBadRequest)
+			return
+		}
+
+		data := brandingData(cfg)
+		data["Token"] = token
+		data["Email"] = email
+		templates.ExecuteTemplate(w, "verify.html", data)
+	}
+}
+
+func handleVerifyApprove(cfg config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.FormValue("token")
 		if token == "" {
 			http.Error(w, "Missing token", http.StatusBadRequest)
 			return
