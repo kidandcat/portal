@@ -16,9 +16,8 @@ body {
 }
 
 .container {
-    max-width: 800px;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 2rem;
 }
 
 header {
@@ -278,13 +277,17 @@ button[type="submit"]:hover {
 
 /* Responsive images */
 img {
-    max-width: 100%;
+    max-width: 50vw;
+    max-height: 50vh;
     height: auto;
+    object-fit: contain;
 }
 
 .page-content img {
-    max-width: 100%;
+    max-width: 50vw;
+    max-height: 50vh;
     height: auto;
+    object-fit: contain;
     border-radius: 6px;
     margin: 0.5rem 0;
 }

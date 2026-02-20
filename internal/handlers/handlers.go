@@ -63,6 +63,11 @@ func handleIndex(cfg config.Config) http.HandlerFunc {
 			return
 		}
 
+		if len(projects) == 1 {
+			http.Redirect(w, r, "/p/"+projects[0].Slug, http.StatusFound)
+			return
+		}
+
 		data := brandingData(cfg)
 		data["User"] = user
 		data["Projects"] = projects
