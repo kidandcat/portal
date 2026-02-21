@@ -1,3 +1,5 @@
+console.log('app.js loaded');
+
 // Tab switching
 function switchTab(tabName) {
     var url = new URL(window.location);

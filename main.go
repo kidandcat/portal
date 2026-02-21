@@ -45,7 +45,10 @@ func main() {
 
 	// Authenticated routes
 	app := http.NewServeMux()
-	app.HandleFunc("GET /", handleDashboard)
+	app.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	})
+	app.HandleFunc("GET /dashboard", handleDashboard)
 	app.HandleFunc("POST /projects", handleCreateProject)
 	app.HandleFunc("GET /projects/{slug}", handleProject)
 	app.HandleFunc("GET /projects/{slug}/settings", handleProjectSettings)

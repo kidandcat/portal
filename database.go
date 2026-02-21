@@ -11,7 +11,7 @@ var db *sql.DB
 
 func initDB(path string) {
 	var err error
-	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_foreign_keys=on")
+	db, err = sql.Open("sqlite3", path+"?_journal_mode=WAL&_foreign_keys=on&_loc=auto")
 	if err != nil {
 		log.Fatal(err)
 	}
