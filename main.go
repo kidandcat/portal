@@ -5,12 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"html"
 	"html/template"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -63,6 +66,7 @@ func main() {
 
 	http.HandleFunc("/logout", handleLogout)
 	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/admin/hub", handleAdminHub)
 	http.HandleFunc("/admin/enter/", handleAdminEnter)
 	http.HandleFunc("/admin/pull/", handleAdminPull)
 	http.HandleFunc("/", handleRoute)
@@ -144,7 +148,38 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 		filePath = "index.html"
 	}
 
-	http.ServeFile(w, r, project.Path+"/"+filePath)
+	fullPath := project.Path + "/" + filePath
+	if filepath.Ext(filePath) == ".html" {
+		serveHTMLWithBar(w, fullPath, project.Name, isAdminOrigin(r))
+		return
+	}
+	http.ServeFile(w, r, fullPath)
+}
+
+func handleAdminHub(w http.ResponseWriter, r *http.Request) {
+	if !isAdminOrigin(r) {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	slug := "_admin"
+	sig := signSlug(slug)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_slug",
+		Value:    slug,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_sig",
+		Value:    sig,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func handleAdminEnter(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +212,20 @@ func handleAdminEnter(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_admin",
+		Value:    "1",
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func isAdminOrigin(r *http.Request) bool {
+	c, err := r.Cookie("portal_admin")
+	return err == nil && c.Value == "1"
 }
 
 func handleAdminPull(w http.ResponseWriter, r *http.Request) {
@@ -311,6 +359,56 @@ func clearSessionCookies(w http.ResponseWriter) {
 		Path:   "/",
 		MaxAge: -1,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "portal_admin",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
+}
+
+func serveHTMLWithBar(w http.ResponseWriter, filePath, projectName string, isAdmin bool) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	content := string(data)
+	idx := strings.LastIndex(content, "</body>")
+	if idx == -1 {
+		idx = strings.LastIndex(content, "</BODY>")
+	}
+	if idx == -1 {
+		// No </body> tag, serve as-is
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
+		return
+	}
+
+	var rightButtons string
+	if isAdmin {
+		rightButtons = `<a href="/admin/hub" style="color:#fff;text-decoration:none;margin-right:12px;font-size:13px">Volver al Hub</a>` +
+			`<a href="/logout" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:13px">Cerrar sesión</a>`
+	} else {
+		rightButtons = `<a href="/logout" style="color:rgba(255,255,255,0.8);text-decoration:none;font-size:13px">Cerrar sesión</a>`
+	}
+
+	label := html.EscapeString(projectName)
+	if isAdmin {
+		label = "Admin — " + label
+	}
+
+	bar := fmt.Sprintf(`<style>
+.portal-bar{position:fixed;top:0;left:0;right:0;height:35px;background:#0d5c84;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;font-weight:500;z-index:999999;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
+.portal-bar a:hover{opacity:0.8}
+html{padding-top:35px !important}
+</style>
+<div class="portal-bar"><span>%s</span><span>%s</span></div>`, label, rightButtons)
+
+	injected := content[:idx] + bar + content[idx:]
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, injected)
 }
 
 func renderLogin(w http.ResponseWriter, errMsg string) {
