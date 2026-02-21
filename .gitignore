@@ -1,4 +1,6 @@
 portal
 portal.db
+portal.db-shm
+portal.db-wal
 config.json
 uploads/

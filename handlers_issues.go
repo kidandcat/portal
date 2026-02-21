@@ -58,7 +58,7 @@ func handleCreateIssue(w http.ResponseWriter, r *http.Request) {
 			"Statuses":   []string{"backlog", "todo", "in_progress", "review", "done"},
 			"Priorities": []string{"low", "medium", "high", "urgent"},
 		}
-		renderTemplate(w, "issues_table.html", data)
+		renderTemplate(w, "issues_table", data)
 		return
 	}
 	http.Redirect(w, r, "/projects/"+slug+"?tab=issues", http.StatusSeeOther)
@@ -110,7 +110,7 @@ func handleUpdateIssue(w http.ResponseWriter, r *http.Request) {
 			"Statuses":   []string{"backlog", "todo", "in_progress", "review", "done"},
 			"Priorities": []string{"low", "medium", "high", "urgent"},
 		}
-		renderTemplate(w, "issues_table.html", data)
+		renderTemplate(w, "issues_table", data)
 		return
 	}
 	http.Redirect(w, r, "/projects/"+slug+"?tab=issues", http.StatusSeeOther)
@@ -136,7 +136,7 @@ func handleDeleteIssue(w http.ResponseWriter, r *http.Request) {
 			"Statuses":   []string{"backlog", "todo", "in_progress", "review", "done"},
 			"Priorities": []string{"low", "medium", "high", "urgent"},
 		}
-		renderTemplate(w, "issues_table.html", data)
+		renderTemplate(w, "issues_table", data)
 		return
 	}
 	http.Redirect(w, r, "/projects/"+slug+"?tab=issues", http.StatusSeeOther)

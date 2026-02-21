@@ -41,7 +41,7 @@ func handleAdminCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	if isHTMX(r) {
 		users, _ := listUsers()
-		renderTemplate(w, "admin_users_table.html", map[string]any{"Users": users})
+		renderTemplate(w, "admin_users_table", map[string]any{"Users": users})
 		return
 	}
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
@@ -58,7 +58,7 @@ func handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	if isHTMX(r) {
 		users, _ := listUsers()
-		renderTemplate(w, "admin_users_table.html", map[string]any{"Users": users})
+		renderTemplate(w, "admin_users_table", map[string]any{"Users": users})
 		return
 	}
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)

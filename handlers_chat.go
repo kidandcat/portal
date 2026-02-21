@@ -25,7 +25,7 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 
 	if isHTMX(r) {
 		msgs := projectMessages(p.ID, 100)
-		renderTemplate(w, "chat_messages.html", map[string]any{
+		renderTemplate(w, "chat_messages", map[string]any{
 			"Messages": msgs,
 			"User":     u,
 		})
@@ -49,7 +49,7 @@ func handleChatPoll(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	renderTemplate(w, "chat_messages.html", map[string]any{
+	renderTemplate(w, "chat_messages", map[string]any{
 		"Messages": msgs,
 		"User":     u,
 	})
