@@ -1,0 +1,21 @@
+app = 'portal-menta'
+primary_region = 'mad'
+
+[build]
+
+[env]
+  DB_PATH = '/data/portal.db'
+  UPLOAD_DIR = '/data/uploads'
+  BASE_URL = 'https://portal-menta.fly.dev'
+  ADMIN_EMAIL = 'kidandcat@gmail.com'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[mounts]
+  source = 'portal_data'
+  destination = '/data'

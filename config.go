@@ -31,9 +31,26 @@ func loadConfig(path string) {
 
 	f, err := os.Open(path)
 	if err != nil {
-		log.Printf("No config file found at %s, using defaults", path)
-		return
+		log.Printf("No config file found at %s, using defaults + env", path)
+	} else {
+		defer f.Close()
+		json.NewDecoder(f).Decode(&cfg)
 	}
-	defer f.Close()
-	json.NewDecoder(f).Decode(&cfg)
+
+	// Env vars override config file
+	if v := os.Getenv("PORT"); v != "" {
+		cfg.Port = v
+	}
+	if v := os.Getenv("DB_PATH"); v != "" {
+		cfg.DBPath = v
+	}
+	if v := os.Getenv("BASE_URL"); v != "" {
+		cfg.BaseURL = v
+	}
+	if v := os.Getenv("UPLOAD_DIR"); v != "" {
+		cfg.UploadDir = v
+	}
+	if v := os.Getenv("ADMIN_EMAIL"); v != "" {
+		cfg.AdminEmail = v
+	}
 }
