@@ -1,12 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"net/smtp"
 	"strings"
 	"time"
 )
@@ -108,15 +109,40 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMagicEmail(to, link string) {
-	if cfg.SMTPHost == "" {
-		log.Printf("SMTP not configured, magic link: %s", link)
+	if cfg.ResendAPIKey == "" {
+		log.Printf("RESEND_API_KEY not configured, magic link: %s", link)
 		return
 	}
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Portal - Acceso\r\n\r\nHaz clic para iniciar sesión:\n%s\n\nEste enlace caduca en 15 minutos.",
-		cfg.SMTPFrom, to, link)
-	auth := smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPHost)
-	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-	if err := smtp.SendMail(addr, auth, cfg.SMTPFrom, []string{to}, []byte(msg)); err != nil {
+
+	htmlBody := fmt.Sprintf(`<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+<h2 style="color:#333">Acceso a Portal</h2>
+<p>Haz clic en el siguiente botón para iniciar sesión:</p>
+<a href="%s" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">Iniciar sesión</a>
+<p style="margin-top:24px;color:#666;font-size:14px">Este enlace caduca en 15 minutos.</p>
+<p style="color:#999;font-size:12px">Si no solicitaste este enlace, ignora este mensaje.</p>
+</div>`, link)
+
+	payload, _ := json.Marshal(map[string]any{
+		"from":    "Portal <portal@mentasystems.com>",
+		"to":      []string{to},
+		"subject": "Tu enlace de acceso",
+		"html":    htmlBody,
+	})
+
+	req, _ := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+cfg.ResendAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
 		log.Printf("Failed to send email to %s: %v", to, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		var resErr map[string]any
+		json.NewDecoder(resp.Body).Decode(&resErr)
+		log.Printf("Resend API error (%d) sending to %s: %v", resp.StatusCode, to, resErr)
 	}
 }

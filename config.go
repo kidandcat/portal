@@ -7,16 +7,12 @@ import (
 )
 
 type Config struct {
-	Port       string `json:"port"`
-	DBPath     string `json:"db_path"`
-	BaseURL    string `json:"base_url"`
-	UploadDir  string `json:"upload_dir"`
-	SMTPHost   string `json:"smtp_host"`
-	SMTPPort   int    `json:"smtp_port"`
-	SMTPUser   string `json:"smtp_user"`
-	SMTPPass   string `json:"smtp_pass"`
-	SMTPFrom   string `json:"smtp_from"`
-	AdminEmail string `json:"admin_email"`
+	Port         string `json:"port"`
+	DBPath       string `json:"db_path"`
+	BaseURL      string `json:"base_url"`
+	UploadDir    string `json:"upload_dir"`
+	ResendAPIKey string `json:"resend_api_key"`
+	AdminEmail   string `json:"admin_email"`
 }
 
 var cfg Config
@@ -49,6 +45,9 @@ func loadConfig(path string) {
 	}
 	if v := os.Getenv("UPLOAD_DIR"); v != "" {
 		cfg.UploadDir = v
+	}
+	if v := os.Getenv("RESEND_API_KEY"); v != "" {
+		cfg.ResendAPIKey = v
 	}
 	if v := os.Getenv("ADMIN_EMAIL"); v != "" {
 		cfg.AdminEmail = v
