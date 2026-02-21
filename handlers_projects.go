@@ -70,20 +70,18 @@ func handleProject(w http.ResponseWriter, r *http.Request) {
 		"IsClient": role == "client",
 	}
 
-	switch tab {
-	case "issues":
-		data["Issues"] = projectIssues(p.ID)
-		data["Members"] = projectMembers(p.ID)
-		data["Statuses"] = []string{"backlog", "todo", "in_progress", "review", "done"}
-		data["Priorities"] = []string{"low", "medium", "high", "urgent"}
-	case "files":
-		folderID := r.URL.Query().Get("folder")
-		data["Folders"], data["Files"] = projectFiles(p.ID, folderID)
-		data["CurrentFolder"] = folderID
-		data["Breadcrumbs"] = folderBreadcrumbs(p.ID, folderID)
-	case "chat":
-		data["Messages"] = projectMessages(p.ID, 100)
-	}
+	// Load all tab data for client-side switching
+	data["Issues"] = projectIssues(p.ID)
+	data["Members"] = projectMembers(p.ID)
+	data["Statuses"] = []string{"backlog", "todo", "in_progress", "review", "done"}
+	data["Priorities"] = []string{"low", "medium", "high", "urgent"}
+
+	folderID := r.URL.Query().Get("folder")
+	data["Folders"], data["Files"] = projectFiles(p.ID, folderID)
+	data["CurrentFolder"] = folderID
+	data["Breadcrumbs"] = folderBreadcrumbs(p.ID, folderID)
+
+	data["Messages"] = projectMessages(p.ID, 100)
 
 	renderTemplate(w, "project.html", data)
 }

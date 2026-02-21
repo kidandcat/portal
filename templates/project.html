@@ -6,22 +6,24 @@
         <div class="topbar">
             <h1>{{.Project.Name}}</h1>
             <div class="tabs">
-                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab{{if eq .Tab "issues"}} active{{end}}">Issues</a>
-                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab{{if eq .Tab "files"}} active{{end}}">Files</a>
-                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab{{if eq .Tab "chat"}} active{{end}}">Chat</a>
+                <a href="#" class="tab{{if eq .Tab "issues"}} active{{end}}" data-tab="issues">Issues</a>
+                <a href="#" class="tab{{if eq .Tab "files"}} active{{end}}" data-tab="files">Files</a>
+                <a href="#" class="tab{{if eq .Tab "chat"}} active{{end}}" data-tab="chat">Chat</a>
                 {{if not .IsClient}}
                 <a href="/projects/{{.Project.Slug}}/settings" class="tab">Settings</a>
                 {{end}}
             </div>
         </div>
 
-        {{if eq .Tab "issues"}}
+        <div id="tab-issues" class="tab-panel{{if eq .Tab "issues"}} active{{end}}">
             {{template "issues_tab" .}}
-        {{else if eq .Tab "files"}}
+        </div>
+        <div id="tab-files" class="tab-panel{{if eq .Tab "files"}} active{{end}}">
             {{template "files_tab" .}}
-        {{else if eq .Tab "chat"}}
+        </div>
+        <div id="tab-chat" class="tab-panel{{if eq .Tab "chat"}} active{{end}}">
             {{template "chat_tab" .}}
-        {{end}}
+        </div>
     </main>
 </div>
 {{end}}
