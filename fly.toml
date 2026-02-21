@@ -1,5 +1,5 @@
 app = 'portal-menta'
-primary_region = 'mad'
+primary_region = 'cdg'
 
 [build]
 
