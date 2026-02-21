@@ -7,9 +7,13 @@ import (
 	"encoding/json"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Project struct {
@@ -20,13 +24,17 @@ type Project struct {
 }
 
 type Config struct {
-	Addr     string    `json:"addr"`
-	Projects []Project `json:"projects"`
+	Addr           string    `json:"addr"`
+	MasterPassword string    `json:"master_password"`
+	Projects       []Project `json:"projects"`
 }
 
 var (
 	config    Config
 	secretKey []byte
+
+	loginAttempts   = make(map[string][]time.Time)
+	loginAttemptsMu sync.Mutex
 )
 
 func main() {
@@ -55,6 +63,8 @@ func main() {
 
 	http.HandleFunc("/logout", handleLogout)
 	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/admin/enter/", handleAdminEnter)
+	http.HandleFunc("/admin/pull/", handleAdminPull)
 	http.HandleFunc("/", handleRoute)
 
 	log.Printf("Portal listening on %s", config.Addr)
@@ -99,6 +109,9 @@ func getSessionSlug(r *http.Request) string {
 	if signSlug(slug) != sig {
 		return ""
 	}
+	if slug == "_admin" {
+		return slug
+	}
 	if findProject(slug) == nil {
 		return ""
 	}
@@ -109,21 +122,23 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 	slug := getSessionSlug(r)
 
 	if slug == "" {
-		// No valid session — show login
 		errMsg := r.URL.Query().Get("error")
 		renderLogin(w, errMsg)
 		return
 	}
 
+	if slug == "_admin" {
+		renderAdmin(w)
+		return
+	}
+
 	project := findProject(slug)
 	if project == nil {
-		// Project no longer exists, clear session
 		clearSessionCookies(w)
 		renderLogin(w, "")
 		return
 	}
 
-	// Serve project files from root
 	filePath := strings.TrimPrefix(r.URL.Path, "/")
 	if filePath == "" {
 		filePath = "index.html"
@@ -132,23 +147,136 @@ func handleRoute(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, project.Path+"/"+filePath)
 }
 
+func handleAdminEnter(w http.ResponseWriter, r *http.Request) {
+	if getSessionSlug(r) != "_admin" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	slug := strings.TrimPrefix(r.URL.Path, "/admin/enter/")
+	project := findProject(slug)
+	if project == nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	sig := signSlug(slug)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_slug",
+		Value:    slug,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "portal_sig",
+		Value:    sig,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func handleAdminPull(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost || getSessionSlug(r) != "_admin" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	slug := strings.TrimPrefix(r.URL.Path, "/admin/pull/")
+	project := findProject(slug)
+	if project == nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	cmd := exec.Command("git", "pull")
+	cmd.Dir = project.Path
+	output, err := cmd.CombinedOutput()
+	result := string(output)
+	if err != nil {
+		result = "Error: " + err.Error() + "\n" + result
+	}
+
+	tmpl := template.Must(template.New("pull").Parse(pullResultHTML))
+	tmpl.Execute(w, map[string]any{
+		"Project": project,
+		"Output":  result,
+	})
+}
+
+func renderAdmin(w http.ResponseWriter) {
+	tmpl := template.Must(template.New("admin").Parse(adminHTML))
+	tmpl.Execute(w, map[string]any{
+		"Projects": config.Projects,
+	})
+}
+
+func clientIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		return strings.SplitN(fwd, ",", 2)[0]
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+func checkRateLimit(ip string) bool {
+	loginAttemptsMu.Lock()
+	defer loginAttemptsMu.Unlock()
+
+	now := time.Now()
+	cutoff := now.Add(-time.Minute)
+
+	// Filter to only keep attempts within the last minute
+	recent := loginAttempts[ip][:0]
+	for _, t := range loginAttempts[ip] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+	loginAttempts[ip] = recent
+
+	if len(recent) >= 10 {
+		return false
+	}
+
+	loginAttempts[ip] = append(loginAttempts[ip], now)
+	return true
+}
+
 func handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
+	if !checkRateLimit(clientIP(r)) {
+		http.Error(w, "Demasiados intentos. Espera un minuto.", http.StatusTooManyRequests)
+		return
+	}
+
 	password := r.FormValue("password")
-	project := findProjectByPassword(password)
-	if project == nil {
+
+	var slug string
+	if config.MasterPassword != "" && password == config.MasterPassword {
+		slug = "_admin"
+	} else if project := findProjectByPassword(password); project != nil {
+		slug = project.Slug
+	} else {
 		http.Redirect(w, r, "/?error=Contrase%C3%B1a+incorrecta", http.StatusSeeOther)
 		return
 	}
 
-	sig := signSlug(project.Slug)
+	sig := signSlug(slug)
 	http.SetCookie(w, &http.Cookie{
 		Name:     "portal_slug",
-		Value:    project.Slug,
+		Value:    slug,
 		Path:     "/",
 		MaxAge:   7 * 24 * 60 * 60,
 		HttpOnly: true,
@@ -191,6 +319,190 @@ func renderLogin(w http.ResponseWriter, errMsg string) {
 		"Error": errMsg,
 	})
 }
+
+var adminHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Portal de Clientes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f4f8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(13, 92, 132, 0.12);
+    padding: 40px;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .header h1 {
+    color: #0d5c84;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .header a {
+    color: #6b7c8a;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .header a:hover {
+    color: #991b1b;
+  }
+
+  .project-list {
+    list-style: none;
+  }
+
+  .project-list li {
+    border: 1.5px solid #d1dbe5;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .project-list li:hover {
+    border-color: #0d5c84;
+  }
+
+  .project-list a {
+    display: inline-block;
+    padding: 16px 20px;
+    text-decoration: none;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .project-list .slug {
+    color: #6b7c8a;
+    font-size: 13px;
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .project-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-pull {
+    background: #e2e8f0;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    margin-right: 12px;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-pull:hover {
+    background: #cbd5e1;
+  }
+</style>
+</head>
+<body>
+  <div class="admin-card">
+    <div class="header">
+      <h1>Proyectos</h1>
+      <a href="/logout">Cerrar sesión</a>
+    </div>
+    <ul class="project-list">
+      {{range .Projects}}
+      <li>
+        <a href="/admin/enter/{{.Slug}}">{{.Name}} <span class="slug">/{{.Slug}}</span></a>
+        <form method="POST" action="/admin/pull/{{.Slug}}" style="margin:0">
+          <button type="submit" class="btn-pull">git pull</button>
+        </form>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+</body>
+</html>`
+
+var pullResultHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Git Pull - {{.Project.Name}}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f4f8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(13, 92, 132, 0.12);
+    padding: 40px;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px;
+  }
+  h1 { color: #0d5c84; font-size: 20px; margin-bottom: 16px; }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-bottom: 20px;
+  }
+  a {
+    display: inline-block;
+    color: #0d5c84;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>git pull — {{.Project.Name}}</h1>
+    <pre>{{.Output}}</pre>
+    <a href="/">← Volver al panel</a>
+  </div>
+</body>
+</html>`
 
 var loginHTML = `<!DOCTYPE html>
 <html lang="es">
