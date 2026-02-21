@@ -15,7 +15,9 @@
           hx-swap="innerHTML"
           hx-on::after-request="this.reset(); document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;">
         <input type="text" name="content" placeholder="Type a message..." autocomplete="off" required>
-        <button type="submit" class="btn btn-primary">Send</button>
+        <button type="submit" class="btn btn-primary btn-icon" title="Send">
+            <i data-lucide="send"></i>
+        </button>
     </form>
 </div>
 {{end}}
@@ -23,9 +25,11 @@
 {{define "chat_messages"}}
 {{range .Messages}}
 <div class="chat-msg {{if eq .UserID $.User.ID}}chat-msg-own{{end}}">
-    <div class="chat-msg-author">{{.User.Name}}</div>
+    <div class="chat-msg-header">
+        <span class="chat-msg-author">{{.User.Name}}</span>
+        <span class="chat-msg-time">{{.CreatedAt.Format "Jan 2, 15:04"}}</span>
+    </div>
     <div class="chat-msg-content">{{.Content}}</div>
-    <div class="chat-msg-time">{{.CreatedAt.Format "Jan 2, 15:04"}}</div>
 </div>
 {{end}}
 {{end}}

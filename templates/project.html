@@ -6,11 +6,19 @@
         <div class="topbar">
             <h1>{{.Project.Name}}</h1>
             <div class="tabs">
-                <a href="#" class="tab{{if eq .Tab "issues"}} active{{end}}" data-tab="issues">Issues</a>
-                <a href="#" class="tab{{if eq .Tab "files"}} active{{end}}" data-tab="files">Files</a>
-                <a href="#" class="tab{{if eq .Tab "chat"}} active{{end}}" data-tab="chat">Chat</a>
+                <a href="#" class="tab{{if eq .Tab "issues"}} active{{end}}" data-tab="issues">
+                    <i data-lucide="circle-dot"></i> Issues
+                </a>
+                <a href="#" class="tab{{if eq .Tab "files"}} active{{end}}" data-tab="files">
+                    <i data-lucide="folder-open"></i> Files
+                </a>
+                <a href="#" class="tab{{if eq .Tab "chat"}} active{{end}}" data-tab="chat">
+                    <i data-lucide="message-circle"></i> Chat
+                </a>
                 {{if not .IsClient}}
-                <a href="/projects/{{.Project.Slug}}/settings" class="tab">Settings</a>
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab">
+                    <i data-lucide="settings"></i> Settings
+                </a>
                 {{end}}
             </div>
         </div>

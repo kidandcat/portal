@@ -2,7 +2,9 @@
 <div class="tab-content">
     {{if not .IsClient}}
     <div class="toolbar">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">New Issue</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">
+            <i data-lucide="plus"></i> New Issue
+        </button>
     </div>
     {{end}}
 
@@ -17,7 +19,7 @@
           hx-post="/projects/{{.Project.Slug}}/issues"
           hx-target="#issues-table-wrapper"
           hx-on::after-request="this.closest('dialog').close(); this.reset();">
-        <h2>New Issue</h2>
+        <h2><i data-lucide="plus-circle"></i> New Issue</h2>
         <div class="form-group">
             <label for="title">Title</label>
             <input type="text" id="title" name="title" required autofocus>
@@ -81,7 +83,7 @@
             <td class="issue-title">{{.Title}}</td>
             <td>
                 {{if not $.IsClient}}
-                <select class="inline-select status-{{.Status}}"
+                <select class="inline-select status-select status-{{.Status}}"
                     hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
                     hx-target="#issues-table-wrapper"
                     hx-vals='{"field":"status"}'
@@ -89,12 +91,12 @@
                     {{range $.Statuses}}<option value="{{.}}" {{if eq . $issue.Status}}selected{{end}}>{{statusLabel .}}</option>{{end}}
                 </select>
                 {{else}}
-                <span class="badge status-{{.Status}}">{{statusLabel .Status}}</span>
+                <span class="badge badge-status-{{.Status}}">{{statusLabel .Status}}</span>
                 {{end}}
             </td>
             <td>
                 {{if not $.IsClient}}
-                <select class="inline-select priority-{{.Priority}}"
+                <select class="inline-select priority-select priority-{{.Priority}}"
                     hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
                     hx-target="#issues-table-wrapper"
                     hx-vals='{"field":"priority"}'
@@ -102,7 +104,7 @@
                     {{range $.Priorities}}<option value="{{.}}" {{if eq . $issue.Priority}}selected{{end}}>{{priorityLabel .}}</option>{{end}}
                 </select>
                 {{else}}
-                <span class="badge priority-{{.Priority}}">{{priorityLabel .Priority}}</span>
+                <span class="badge badge-priority-{{.Priority}}">{{priorityLabel .Priority}}</span>
                 {{end}}
             </td>
             <td>
@@ -112,22 +114,25 @@
                     hx-target="#issues-table-wrapper"
                     hx-vals='{"field":"assignee_id"}'
                     name="value">
-                    <option value="">—</option>
+                    <option value="">--</option>
                     {{range $.Members}}
                     <option value="{{.UserID}}" {{if and $issue.AssigneeID (eq .UserID (derefInt64 $issue.AssigneeID))}}selected{{end}}>{{.User.Name}}</option>
                     {{end}}
                 </select>
                 {{else}}
-                {{if .Assignee}}{{.Assignee.Name}}{{else}}—{{end}}
+                {{if .Assignee}}{{.Assignee.Name}}{{else}}--{{end}}
                 {{end}}
             </td>
-            <td>{{if .DueDate}}{{.DueDate}}{{else}}—{{end}}</td>
+            <td class="text-muted">{{if .DueDate}}{{.DueDate}}{{else}}--{{end}}</td>
             {{if not $.IsClient}}
             <td>
-                <button class="btn btn-danger btn-xs"
+                <button class="btn btn-ghost btn-xs btn-icon"
                     hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
                     hx-target="#issues-table-wrapper"
-                    hx-confirm="Delete this issue?">×</button>
+                    hx-confirm="Delete this issue?"
+                    title="Delete issue">
+                    <i data-lucide="trash-2"></i>
+                </button>
             </td>
             {{end}}
         </tr>

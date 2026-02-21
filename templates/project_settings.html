@@ -4,17 +4,25 @@
     {{template "sidebar" .}}
     <main class="main">
         <div class="topbar">
-            <h1>{{.Project.Name}} — Settings</h1>
+            <h1>{{.Project.Name}} -- Settings</h1>
             <div class="tabs">
-                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab">Issues</a>
-                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab">Files</a>
-                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab">Chat</a>
-                <a href="/projects/{{.Project.Slug}}/settings" class="tab active">Settings</a>
+                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab">
+                    <i data-lucide="circle-dot"></i> Issues
+                </a>
+                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab">
+                    <i data-lucide="folder-open"></i> Files
+                </a>
+                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab">
+                    <i data-lucide="message-circle"></i> Chat
+                </a>
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab active">
+                    <i data-lucide="settings"></i> Settings
+                </a>
             </div>
         </div>
 
         <div class="tab-content">
-            <h2>Members</h2>
+            <h2><i data-lucide="users" class="section-icon"></i> Members</h2>
             <form method="POST" action="/projects/{{.Project.Slug}}/settings" class="inline-form">
                 <input type="hidden" name="action" value="add_member">
                 <select name="email" required>
@@ -28,7 +36,9 @@
                     <option value="client">Client</option>
                     <option value="owner">Owner</option>
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i data-lucide="user-plus"></i> Add
+                </button>
             </form>
 
             <table class="table" style="margin-top:1rem">
@@ -50,7 +60,9 @@
                             <form method="POST" action="/projects/{{$.Project.Slug}}/settings" style="display:inline">
                                 <input type="hidden" name="action" value="remove_member">
                                 <input type="hidden" name="user_id" value="{{.UserID}}">
-                                <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('Remove this member?')">×</button>
+                                <button type="submit" class="btn btn-ghost btn-xs btn-icon" onclick="return confirm('Remove this member?')" title="Remove member">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
