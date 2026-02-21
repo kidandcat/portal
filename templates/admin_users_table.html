@@ -15,15 +15,12 @@
             <td>{{.Name}}</td>
             <td>{{.Email}}</td>
             <td><span class="badge badge-{{.Role}}">{{.Role}}</span></td>
-            <td class="text-muted">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
+            <td>{{.CreatedAt.Format "Jan 2, 2006"}}</td>
             <td>
-                <button class="btn btn-ghost btn-xs btn-icon"
+                <button class="btn btn-danger btn-xs"
                     hx-delete="/admin/users/{{.ID}}"
                     hx-target="#users-table-wrapper"
-                    hx-confirm="Delete user {{.Name}}?"
-                    title="Delete user">
-                    <i data-lucide="trash-2"></i>
-                </button>
+                    hx-confirm="Delete user {{.Name}}?">×</button>
             </td>
         </tr>
         {{end}}

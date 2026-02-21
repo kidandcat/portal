@@ -1,17 +1,14 @@
 {{define "sidebar"}}
 <aside class="sidebar">
     <div class="sidebar-header">
-        <a href="/dashboard" class="sidebar-logo">
-            <i data-lucide="layout-dashboard"></i>
-            Portal
-        </a>
+        <a href="/dashboard" class="sidebar-logo">Portal</a>
     </div>
     <nav class="sidebar-nav">
         <div class="sidebar-section">
             <div class="sidebar-section-title">Projects</div>
             {{range .Projects}}
             <a href="/projects/{{.Slug}}" class="sidebar-link{{if and $.Project (eq $.Project.Slug .Slug)}} active{{end}}">
-                <i data-lucide="folder" class="sidebar-icon"></i>
+                <span class="sidebar-dot"></span>
                 {{.Name}}
             </a>
             {{end}}
@@ -19,20 +16,12 @@
     </nav>
     <div class="sidebar-footer">
         {{if eq .User.Role "admin"}}
-        <a href="/admin" class="sidebar-link">
-            <i data-lucide="shield" class="sidebar-icon"></i>
-            Admin
-        </a>
+        <a href="/admin" class="sidebar-link">Admin</a>
         {{end}}
         <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <i data-lucide="user" class="sidebar-icon"></i>
-                <span>{{.User.Name}}</span>
-            </div>
+            <span>{{.User.Name}}</span>
             <form method="POST" action="/logout" style="display:inline">
-                <button type="submit" class="btn-link" title="Logout">
-                    <i data-lucide="log-out" class="sidebar-icon"></i>
-                </button>
+                <button type="submit" class="btn-link">Logout</button>
             </form>
         </div>
     </div>

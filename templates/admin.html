@@ -4,14 +4,12 @@
     {{template "sidebar" .}}
     <main class="main">
         <div class="topbar">
-            <h1><i data-lucide="shield" class="topbar-icon"></i> Admin -- Users</h1>
+            <h1>Admin -- Users</h1>
         </div>
 
         <div class="tab-content">
             <div class="toolbar">
-                <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-user-modal').showModal()">
-                    <i data-lucide="user-plus"></i> New User
-                </button>
+                <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-user-modal').showModal()">New User</button>
             </div>
 
             <div id="users-table-wrapper">
@@ -26,7 +24,7 @@
           hx-post="/admin/users"
           hx-target="#users-table-wrapper"
           hx-on::after-request="this.closest('dialog').close(); this.reset();">
-        <h2><i data-lucide="user-plus"></i> New User</h2>
+        <h2>New User</h2>
         <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" required>

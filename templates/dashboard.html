@@ -6,24 +6,18 @@
         <div class="topbar">
             <h1>Projects</h1>
             {{if ne .User.Role "client"}}
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-project-modal').showModal()">
-                <i data-lucide="plus"></i> New Project
-            </button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-project-modal').showModal()">New Project</button>
             {{end}}
         </div>
         <div class="project-grid">
             {{range .Projects}}
             <a href="/projects/{{.Slug}}" class="project-card">
-                <div class="project-card-header">
-                    <i data-lucide="folder" class="project-card-icon"></i>
-                    <span class="badge badge-{{.MemberRole}}">{{.MemberRole}}</span>
-                </div>
                 <div class="project-card-name">{{.Name}}</div>
                 {{if .Description}}<div class="project-card-desc">{{.Description}}</div>{{end}}
+                <div class="project-card-role badge badge-{{.MemberRole}}">{{.MemberRole}}</div>
             </a>
             {{else}}
             <div class="empty-state">
-                <i data-lucide="layout-dashboard" class="empty-icon"></i>
                 <p>No projects yet</p>
                 {{if ne .User.Role "client"}}<p>Create your first project to get started.</p>{{end}}
             </div>
@@ -35,7 +29,7 @@
 {{if ne .User.Role "client"}}
 <dialog id="new-project-modal" class="modal">
     <form method="POST" action="/projects">
-        <h2><i data-lucide="folder-plus"></i> New Project</h2>
+        <h2>New Project</h2>
         <div class="form-group">
             <label for="name">Name</label>
             <input type="text" id="name" name="name" required autofocus>

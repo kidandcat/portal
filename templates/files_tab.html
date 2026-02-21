@@ -2,20 +2,16 @@
 <div class="tab-content">
     {{if not .IsClient}}
     <div class="toolbar">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('upload-modal').showModal()">
-            <i data-lucide="upload"></i> Upload File
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('folder-modal').showModal()">
-            <i data-lucide="folder-plus"></i> New Folder
-        </button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('upload-modal').showModal()">Upload File</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('folder-modal').showModal()">New Folder</button>
     </div>
     {{end}}
 
     {{if .Breadcrumbs}}
     <div class="breadcrumbs">
-        <a href="/projects/{{.Project.Slug}}?tab=files"><i data-lucide="home" class="breadcrumb-icon"></i> Root</a>
+        <a href="/projects/{{.Project.Slug}}?tab=files">Root</a>
         {{range .Breadcrumbs}}
-        <span class="breadcrumb-sep"><i data-lucide="chevron-right"></i></span>
+        <span class="breadcrumb-sep">/</span>
         <a href="/projects/{{$.Project.Slug}}?tab=files&folder={{.ID}}">{{.Name}}</a>
         {{end}}
     </div>
@@ -24,37 +20,29 @@
     <div class="file-list">
         {{range .Folders}}
         <a href="/projects/{{$.Project.Slug}}?tab=files&folder={{.ID}}" class="file-item file-folder">
-            <span class="file-icon"><i data-lucide="folder"></i></span>
+            <span class="file-icon">📁</span>
             <span class="file-name">{{.Name}}</span>
         </a>
         {{end}}
 
         {{range .Files}}
         <div class="file-item">
-            <span class="file-icon"><i data-lucide="file-text"></i></span>
+            <span class="file-icon">📄</span>
             <span class="file-name">{{.Name}}</span>
             <span class="file-size">{{formatSize .Size}}</span>
             <span class="file-uploader">{{if .Uploader}}{{.Uploader.Name}}{{end}}</span>
             <div class="file-actions">
-                <a href="/projects/{{$.Project.Slug}}/files/{{.ID}}/download" class="btn btn-secondary btn-xs">
-                    <i data-lucide="download"></i> Download
-                </a>
+                <a href="/projects/{{$.Project.Slug}}/files/{{.ID}}/download" class="btn btn-secondary btn-xs">Download</a>
                 {{if not $.IsClient}}
-                <button class="btn btn-ghost btn-xs btn-icon"
+                <button class="btn btn-danger btn-xs"
                     hx-delete="/projects/{{$.Project.Slug}}/files/{{.ID}}"
-                    hx-confirm="Delete this file?"
-                    title="Delete file">
-                    <i data-lucide="trash-2"></i>
-                </button>
+                    hx-confirm="Delete this file?">×</button>
                 {{end}}
             </div>
         </div>
         {{else}}
         {{if not $.Folders}}
-        <div class="empty-state">
-            <i data-lucide="folder-open" class="empty-icon"></i>
-            <p>No files yet</p>
-        </div>
+        <div class="empty-state">No files yet</div>
         {{end}}
         {{end}}
     </div>
@@ -63,7 +51,7 @@
 {{if not .IsClient}}
 <dialog id="upload-modal" class="modal">
     <form method="POST" action="/projects/{{.Project.Slug}}/files" enctype="multipart/form-data">
-        <h2><i data-lucide="upload"></i> Upload File</h2>
+        <h2>Upload File</h2>
         {{if .CurrentFolder}}<input type="hidden" name="folder_id" value="{{.CurrentFolder}}">{{end}}
         <div class="form-group">
             <label for="file">File</label>
@@ -78,7 +66,7 @@
 
 <dialog id="folder-modal" class="modal">
     <form method="POST" action="/projects/{{.Project.Slug}}/folders">
-        <h2><i data-lucide="folder-plus"></i> New Folder</h2>
+        <h2>New Folder</h2>
         {{if .CurrentFolder}}<input type="hidden" name="parent_id" value="{{.CurrentFolder}}">{{end}}
         <div class="form-group">
             <label for="folder-name">Name</label>

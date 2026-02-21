@@ -2,9 +2,7 @@
 <div class="tab-content">
     {{if not .IsClient}}
     <div class="toolbar">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">
-            <i data-lucide="plus"></i> New Issue
-        </button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">New Issue</button>
     </div>
     {{end}}
 
@@ -19,7 +17,7 @@
           hx-post="/projects/{{.Project.Slug}}/issues"
           hx-target="#issues-table-wrapper"
           hx-on::after-request="this.closest('dialog').close(); this.reset();">
-        <h2><i data-lucide="plus-circle"></i> New Issue</h2>
+        <h2>New Issue</h2>
         <div class="form-group">
             <label for="title">Title</label>
             <input type="text" id="title" name="title" required autofocus>
@@ -123,16 +121,13 @@
                 {{if .Assignee}}{{.Assignee.Name}}{{else}}--{{end}}
                 {{end}}
             </td>
-            <td class="text-muted">{{if .DueDate}}{{.DueDate}}{{else}}--{{end}}</td>
+            <td>{{if .DueDate}}{{.DueDate}}{{else}}--{{end}}</td>
             {{if not $.IsClient}}
             <td>
-                <button class="btn btn-ghost btn-xs btn-icon"
+                <button class="btn btn-danger btn-xs"
                     hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
                     hx-target="#issues-table-wrapper"
-                    hx-confirm="Delete this issue?"
-                    title="Delete issue">
-                    <i data-lucide="trash-2"></i>
-                </button>
+                    hx-confirm="Delete this issue?">×</button>
             </td>
             {{end}}
         </tr>
