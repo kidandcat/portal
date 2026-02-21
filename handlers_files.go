@@ -114,7 +114,12 @@ func handleDownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", f.Name))
+	// Serve images inline (for carousel), others as attachment
+	if strings.HasPrefix(f.MimeType, "image/") {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", f.Name))
+	} else {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", f.Name))
+	}
 	w.Header().Set("Content-Type", f.MimeType)
 	http.ServeFile(w, r, f.Path)
 }
