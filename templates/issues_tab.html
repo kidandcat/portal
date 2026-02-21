@@ -2,7 +2,7 @@
 <div class="tab-content">
     {{if not .IsClient}}
     <div class="toolbar">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">New Issue</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-issue-modal').showModal()">Nueva tarea</button>
     </div>
     {{end}}
 
@@ -17,45 +17,33 @@
           hx-post="/projects/{{.Project.Slug}}/issues"
           hx-target="#issues-table-wrapper"
           hx-on::after-request="this.closest('dialog').close(); this.reset();">
-        <h2>New Issue</h2>
+        <h2>Nueva tarea</h2>
         <div class="form-group">
-            <label for="title">Title</label>
+            <label for="title">Título</label>
             <input type="text" id="title" name="title" required autofocus>
         </div>
         <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description">Descripción</label>
             <textarea id="description" name="description" rows="3"></textarea>
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label for="status">Status</label>
+                <label for="status">Estado</label>
                 <select id="status" name="status">
                     {{range .Statuses}}<option value="{{.}}">{{statusLabel .}}</option>{{end}}
                 </select>
             </div>
             <div class="form-group">
-                <label for="priority">Priority</label>
-                <select id="priority" name="priority">
-                    {{range .Priorities}}<option value="{{.}}" {{if eq . "medium"}}selected{{end}}>{{priorityLabel .}}</option>{{end}}
+                <label for="milestone_id">Hito</label>
+                <select id="milestone_id" name="milestone_id">
+                    <option value="">Sin hito</option>
+                    {{range .Milestones}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                 </select>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label for="assignee_id">Assignee</label>
-                <select id="assignee_id" name="assignee_id">
-                    <option value="">Unassigned</option>
-                    {{range .Members}}<option value="{{.UserID}}">{{.User.Name}}</option>{{end}}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="due_date">Due Date</label>
-                <input type="date" id="due_date" name="due_date">
             </div>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Crear</button>
         </div>
     </form>
 </dialog>
@@ -63,77 +51,44 @@
 {{end}}
 
 {{define "issues_table"}}
-<table class="table issues-table">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Priority</th>
-            <th>Assignee</th>
-            <th>Due Date</th>
-            {{if not .IsClient}}<th></th>{{end}}
-        </tr>
-    </thead>
-    <tbody>
-        {{range .Issues}}
-        {{$issue := .}}
-        <tr class="issue-row" data-id="{{.ID}}">
-            <td class="issue-title">{{.Title}}</td>
-            <td>
-                {{if not $.IsClient}}
-                <select class="inline-select status-select status-{{.Status}}"
-                    hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                    hx-target="#issues-table-wrapper"
-                    hx-vals='{"field":"status"}'
-                    name="value">
-                    {{range $.Statuses}}<option value="{{.}}" {{if eq . $issue.Status}}selected{{end}}>{{statusLabel .}}</option>{{end}}
-                </select>
-                {{else}}
-                <span class="badge badge-status-{{.Status}}">{{statusLabel .Status}}</span>
-                {{end}}
-            </td>
-            <td>
-                {{if not $.IsClient}}
-                <select class="inline-select priority-select priority-{{.Priority}}"
-                    hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                    hx-target="#issues-table-wrapper"
-                    hx-vals='{"field":"priority"}'
-                    name="value">
-                    {{range $.Priorities}}<option value="{{.}}" {{if eq . $issue.Priority}}selected{{end}}>{{priorityLabel .}}</option>{{end}}
-                </select>
-                {{else}}
-                <span class="badge badge-priority-{{.Priority}}">{{priorityLabel .Priority}}</span>
-                {{end}}
-            </td>
-            <td>
-                {{if not $.IsClient}}
-                <select class="inline-select"
-                    hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                    hx-target="#issues-table-wrapper"
-                    hx-vals='{"field":"assignee_id"}'
-                    name="value">
-                    <option value="">--</option>
-                    {{range $.Members}}
-                    <option value="{{.UserID}}" {{if and $issue.AssigneeID (eq .UserID (derefInt64 $issue.AssigneeID))}}selected{{end}}>{{.User.Name}}</option>
-                    {{end}}
-                </select>
-                {{else}}
-                {{if .Assignee}}{{.Assignee.Name}}{{else}}--{{end}}
-                {{end}}
-            </td>
-            <td>{{if .DueDate}}{{.DueDate}}{{else}}--{{end}}</td>
+<div class="issues-list">
+    {{range .Issues}}
+    {{$issue := .}}
+    <div class="issue-card" data-id="{{.ID}}">
+        <div class="issue-card-header">
+            <span class="issue-title">{{.Title}}</span>
             {{if not $.IsClient}}
-            <td>
-                <button class="btn btn-danger btn-xs"
-                    hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                    hx-target="#issues-table-wrapper"
-                    hx-confirm="Delete this issue?">×</button>
-            </td>
+            <button class="btn btn-ghost btn-xs"
+                hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+                hx-target="#issues-table-wrapper"
+                hx-confirm="¿Eliminar esta tarea?">×</button>
             {{end}}
-        </tr>
-        {{else}}
-        <tr><td colspan="6" class="empty-state">No issues yet</td></tr>
-        {{end}}
-    </tbody>
-</table>
+        </div>
+        <div class="issue-card-meta">
+            {{if not $.IsClient}}
+            <select class="inline-select status-select status-{{.Status}}"
+                hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+                hx-target="#issues-table-wrapper"
+                hx-vals='{"field":"status"}'
+                name="value">
+                {{range $.Statuses}}<option value="{{.}}" {{if eq . $issue.Status}}selected{{end}}>{{statusLabel .}}</option>{{end}}
+            </select>
+            <select class="inline-select milestone-select"
+                hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+                hx-target="#issues-table-wrapper"
+                hx-vals='{"field":"milestone_id"}'
+                name="value">
+                <option value="">Sin hito</option>
+                {{range $.Milestones}}<option value="{{.ID}}" {{if and $issue.MilestoneID (eq .ID (derefInt64 $issue.MilestoneID))}}selected{{end}}>{{.Name}}</option>{{end}}
+            </select>
+            {{else}}
+            <span class="badge badge-status-{{.Status}}">{{statusLabel .Status}}</span>
+            {{if .Milestone}}<span class="badge badge-milestone">{{.Milestone.Name}}</span>{{end}}
+            {{end}}
+        </div>
+    </div>
+    {{else}}
+    <div class="empty-state">No hay tareas todavía</div>
+    {{end}}
+</div>
 {{end}}

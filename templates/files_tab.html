@@ -2,14 +2,14 @@
 <div class="tab-content">
     {{if not .IsClient}}
     <div class="toolbar">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('upload-modal').showModal()">Upload File</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('folder-modal').showModal()">New Folder</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('upload-modal').showModal()">Subir archivo</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('folder-modal').showModal()">Nueva carpeta</button>
     </div>
     {{end}}
 
     {{if .Breadcrumbs}}
     <div class="breadcrumbs">
-        <a href="/projects/{{.Project.Slug}}?tab=files">Root</a>
+        <a href="/projects/{{.Project.Slug}}?tab=files">Raíz</a>
         {{range .Breadcrumbs}}
         <span class="breadcrumb-sep">/</span>
         <a href="/projects/{{$.Project.Slug}}?tab=files&folder={{.ID}}">{{.Name}}</a>
@@ -17,6 +17,27 @@
     </div>
     {{end}}
 
+    {{if .AllImages}}
+    <div class="carousel" id="image-carousel">
+        <div class="carousel-track">
+            {{range $i, $f := .Files}}
+            <div class="carousel-slide{{if eq $i 0}} active{{end}}">
+                <img src="/projects/{{$.Project.Slug}}/files/{{$f.ID}}/download" alt="{{$f.Name}}" loading="lazy">
+                <div class="carousel-caption">{{$f.Name}}</div>
+            </div>
+            {{end}}
+        </div>
+        {{if gt (len .Files) 1}}
+        <button class="carousel-btn carousel-prev" onclick="carouselNav(-1)">&lsaquo;</button>
+        <button class="carousel-btn carousel-next" onclick="carouselNav(1)">&rsaquo;</button>
+        <div class="carousel-dots">
+            {{range $i, $f := .Files}}
+            <span class="carousel-dot{{if eq $i 0}} active{{end}}" onclick="carouselGo({{$i}})"></span>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+    {{else}}
     <div class="file-list">
         {{range .Folders}}
         <a href="/projects/{{$.Project.Slug}}?tab=files&folder={{.ID}}" class="file-item file-folder">
@@ -32,49 +53,50 @@
             <span class="file-size">{{formatSize .Size}}</span>
             <span class="file-uploader">{{if .Uploader}}{{.Uploader.Name}}{{end}}</span>
             <div class="file-actions">
-                <a href="/projects/{{$.Project.Slug}}/files/{{.ID}}/download" class="btn btn-secondary btn-xs">Download</a>
+                <a href="/projects/{{$.Project.Slug}}/files/{{.ID}}/download" class="btn btn-secondary btn-xs">Descargar</a>
                 {{if not $.IsClient}}
                 <button class="btn btn-danger btn-xs"
                     hx-delete="/projects/{{$.Project.Slug}}/files/{{.ID}}"
-                    hx-confirm="Delete this file?">×</button>
+                    hx-confirm="¿Eliminar este archivo?">×</button>
                 {{end}}
             </div>
         </div>
         {{else}}
         {{if not $.Folders}}
-        <div class="empty-state">No files yet</div>
+        <div class="empty-state">No hay archivos todavía</div>
         {{end}}
         {{end}}
     </div>
+    {{end}}
 </div>
 
 {{if not .IsClient}}
 <dialog id="upload-modal" class="modal">
     <form method="POST" action="/projects/{{.Project.Slug}}/files" enctype="multipart/form-data">
-        <h2>Upload File</h2>
+        <h2>Subir archivo</h2>
         {{if .CurrentFolder}}<input type="hidden" name="folder_id" value="{{.CurrentFolder}}">{{end}}
         <div class="form-group">
-            <label for="file">File</label>
+            <label for="file">Archivo</label>
             <input type="file" id="file" name="file" required>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Upload</button>
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Subir</button>
         </div>
     </form>
 </dialog>
 
 <dialog id="folder-modal" class="modal">
     <form method="POST" action="/projects/{{.Project.Slug}}/folders">
-        <h2>New Folder</h2>
+        <h2>Nueva carpeta</h2>
         {{if .CurrentFolder}}<input type="hidden" name="parent_id" value="{{.CurrentFolder}}">{{end}}
         <div class="form-group">
-            <label for="folder-name">Name</label>
+            <label for="folder-name">Nombre</label>
             <input type="text" id="folder-name" name="name" required>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Crear</button>
         </div>
     </form>
 </dialog>

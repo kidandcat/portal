@@ -43,6 +43,18 @@ type ProjectMember struct {
 	User      *User // joined
 }
 
+type Milestone struct {
+	ID          int64
+	ProjectID   int64
+	Name        string
+	Description string
+	TargetDate  *string
+	Position    int
+	CreatedAt   time.Time
+	TotalIssues int // computed
+	DoneIssues  int // computed
+}
+
 type Issue struct {
 	ID          int64
 	ProjectID   int64
@@ -52,11 +64,13 @@ type Issue struct {
 	Priority    string
 	AssigneeID  *int64
 	DueDate     *string
+	MilestoneID *int64
 	Position    int
 	CreatedBy   *int64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Assignee    *User // joined
+	Assignee    *User      // joined
+	Milestone   *Milestone // joined
 }
 
 type Folder struct {

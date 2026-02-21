@@ -4,39 +4,35 @@
     {{template "sidebar" .}}
     <main class="main">
         <div class="topbar">
-            <h1>{{.Project.Name}} -- Settings</h1>
+            <h1>{{.Project.Name}} — Ajustes</h1>
             <div class="tabs">
-                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab">Issues</a>
-                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab">Files</a>
-                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab">Chat</a>
-                <a href="/projects/{{.Project.Slug}}/settings" class="tab active">Settings</a>
+                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab">Tareas</a>
+                <a href="/projects/{{.Project.Slug}}?tab=milestones" class="tab">Hitos</a>
+                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab">Archivos</a>
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab active">Ajustes</a>
             </div>
         </div>
 
         <div class="tab-content">
-            <h2>Members</h2>
+            <h2>Miembros</h2>
             <form method="POST" action="/projects/{{.Project.Slug}}/settings" class="inline-form">
                 <input type="hidden" name="action" value="add_member">
-                <select name="email" required>
-                    <option value="">Select user...</option>
-                    {{range .AllUsers}}
-                    <option value="{{.Email}}">{{.Name}} ({{.Email}})</option>
-                    {{end}}
-                </select>
+                <input type="email" name="email" placeholder="email@ejemplo.com" required>
                 <select name="role">
-                    <option value="member">Member</option>
-                    <option value="client">Client</option>
-                    <option value="owner">Owner</option>
+                    <option value="client">Cliente</option>
+                    <option value="member">Miembro</option>
+                    <option value="owner">Propietario</option>
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                <button type="submit" class="btn btn-primary btn-sm">Invitar</button>
             </form>
+            <p class="text-muted" style="font-size:0.75rem; margin-top:0.5rem;">Si el usuario no existe, se creará automáticamente y recibirá un email de acceso.</p>
 
             <table class="table" style="margin-top:1rem">
                 <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Nombre</th>
                         <th>Email</th>
-                        <th>Role</th>
+                        <th>Rol</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -50,7 +46,7 @@
                             <form method="POST" action="/projects/{{$.Project.Slug}}/settings" style="display:inline">
                                 <input type="hidden" name="action" value="remove_member">
                                 <input type="hidden" name="user_id" value="{{.UserID}}">
-                                <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('Remove this member?')">×</button>
+                                <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('¿Eliminar este miembro?')">×</button>
                             </form>
                         </td>
                     </tr>

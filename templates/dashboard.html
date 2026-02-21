@@ -4,9 +4,9 @@
     {{template "sidebar" .}}
     <main class="main">
         <div class="topbar">
-            <h1>Projects</h1>
-            {{if ne .User.Role "client"}}
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-project-modal').showModal()">New Project</button>
+            <h1>Proyectos</h1>
+            {{if eq .User.Role "admin"}}
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-project-modal').showModal()">Nuevo proyecto</button>
             {{end}}
         </div>
         <div class="project-grid">
@@ -18,29 +18,29 @@
             </a>
             {{else}}
             <div class="empty-state">
-                <p>No projects yet</p>
-                {{if ne .User.Role "client"}}<p>Create your first project to get started.</p>{{end}}
+                <p>No hay proyectos todavía</p>
+                {{if eq .User.Role "admin"}}<p>Crea tu primer proyecto para comenzar.</p>{{end}}
             </div>
             {{end}}
         </div>
     </main>
 </div>
 
-{{if ne .User.Role "client"}}
+{{if eq .User.Role "admin"}}
 <dialog id="new-project-modal" class="modal">
     <form method="POST" action="/projects">
-        <h2>New Project</h2>
+        <h2>Nuevo proyecto</h2>
         <div class="form-group">
-            <label for="name">Name</label>
+            <label for="name">Nombre</label>
             <input type="text" id="name" name="name" required autofocus>
         </div>
         <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description">Descripción</label>
             <textarea id="description" name="description" rows="3"></textarea>
         </div>
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Crear</button>
         </div>
     </form>
 </dialog>

@@ -29,10 +29,10 @@ var funcMap = template.FuncMap{
 	"statusLabel": func(s string) string {
 		labels := map[string]string{
 			"backlog":     "Backlog",
-			"todo":        "To Do",
-			"in_progress": "In Progress",
-			"review":      "Review",
-			"done":        "Done",
+			"todo":        "Por hacer",
+			"in_progress": "En progreso",
+			"review":      "Revisión",
+			"done":        "Hecho",
 		}
 		if l, ok := labels[s]; ok {
 			return l
@@ -41,10 +41,10 @@ var funcMap = template.FuncMap{
 	},
 	"priorityLabel": func(s string) string {
 		labels := map[string]string{
-			"low":    "Low",
-			"medium": "Medium",
-			"high":   "High",
-			"urgent": "Urgent",
+			"low":    "Baja",
+			"medium": "Media",
+			"high":   "Alta",
+			"urgent": "Urgente",
 		}
 		if l, ok := labels[s]; ok {
 			return l
@@ -70,6 +70,39 @@ var funcMap = template.FuncMap{
 	"sub": func(a, b int) int {
 		return a - b
 	},
+	"milestoneProgress": func(total, done int) int {
+		if total == 0 {
+			return 0
+		}
+		return done * 100 / total
+	},
+	"progressCircle": func(pct int) template.HTML {
+		r := 36.0
+		c := 2 * 3.14159 * r
+		offset := c - (float64(pct)/100.0)*c
+		color := "#0d5c84"
+		if pct == 100 {
+			color = "#16a34a"
+		}
+		return template.HTML(fmt.Sprintf(
+			`<svg width="80" height="80" viewBox="0 0 80 80">
+				<circle cx="40" cy="40" r="%.0f" fill="none" stroke="#e5e7eb" stroke-width="6"/>
+				<circle cx="40" cy="40" r="%.0f" fill="none" stroke="%s" stroke-width="6"
+					stroke-dasharray="%.2f" stroke-dashoffset="%.2f"
+					stroke-linecap="round" transform="rotate(-90 40 40)"/>
+				<text x="40" y="44" text-anchor="middle" font-size="14" font-weight="600" fill="%s">%d%%</text>
+			</svg>`, r, r, color, c, offset, color, pct))
+	},
+	"isImage": func(mime string) bool {
+		return strings.HasPrefix(mime, "image/")
+	},
+	"split": strings.Split,
+	"derefStr": func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
+	},
 }
 
 func mustParsePage(files ...string) *template.Template {
@@ -80,18 +113,16 @@ func initTemplates() {
 	shared := []string{"templates/layout.html", "templates/sidebar.html"}
 
 	templates = map[string]*template.Template{
-		// Full pages (each gets its own template set to avoid {{define "content"}} collisions)
-		"dashboard.html":         mustParsePage(append(shared, "templates/dashboard.html")...),
-		"project.html":           mustParsePage(append(shared, "templates/project.html", "templates/issues_tab.html", "templates/files_tab.html", "templates/chat_tab.html")...),
-		"project_settings.html":  mustParsePage(append(shared, "templates/project_settings.html")...),
-		"login.html":             mustParsePage("templates/layout.html", "templates/login.html"),
-		"login_sent.html":        mustParsePage("templates/layout.html", "templates/login_sent.html"),
-		"approve.html":           mustParsePage("templates/layout.html", "templates/approve.html"),
-		"admin.html":             mustParsePage(append(shared, "templates/admin.html", "templates/admin_users_table.html")...),
+		"dashboard.html":        mustParsePage(append(shared, "templates/dashboard.html")...),
+		"project.html":          mustParsePage(append(shared, "templates/project.html", "templates/issues_tab.html", "templates/files_tab.html", "templates/milestones_tab.html")...),
+		"project_settings.html": mustParsePage(append(shared, "templates/project_settings.html")...),
+		"login.html":            mustParsePage("templates/layout.html", "templates/login.html"),
+		"login_sent.html":       mustParsePage("templates/layout.html", "templates/login_sent.html"),
+		"approve.html":          mustParsePage("templates/layout.html", "templates/approve.html"),
+		"admin.html":            mustParsePage(append(shared, "templates/admin.html", "templates/admin_users_table.html")...),
 
-		// HTMX partials (named templates, not file templates)
+		// HTMX partials
 		"issues_table":      mustParsePage("templates/issues_tab.html"),
-		"chat_messages":     mustParsePage("templates/chat_tab.html"),
 		"admin_users_table": mustParsePage("templates/admin_users_table.html"),
 	}
 }

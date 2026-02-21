@@ -1,0 +1,63 @@
+{{define "milestones_tab"}}
+<div class="tab-content">
+    {{if not .IsClient}}
+    <div class="toolbar">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-milestone-modal').showModal()">Nuevo hito</button>
+    </div>
+    {{end}}
+
+    <div class="milestones-grid">
+        {{range .Milestones}}
+        {{$ms := .}}
+        <div class="milestone-card">
+            <div class="milestone-card-progress">
+                {{progressCircle (milestoneProgress .TotalIssues .DoneIssues)}}
+            </div>
+            <div class="milestone-card-info">
+                <div class="milestone-card-name">{{.Name}}</div>
+                {{if .Description}}<div class="milestone-card-desc">{{.Description}}</div>{{end}}
+                <div class="milestone-card-stats">
+                    <span>{{.DoneIssues}}/{{.TotalIssues}} tareas</span>
+                    {{if .TargetDate}}<span class="milestone-date">Fecha objetivo: {{index (split (derefStr .TargetDate) "T") 0}}</span>{{end}}
+                </div>
+            </div>
+            {{if not $.IsClient}}
+            <div class="milestone-card-actions">
+                <form method="POST" action="/projects/{{$.Project.Slug}}/milestones/{{.ID}}" style="display:inline">
+                </form>
+                <button class="btn btn-ghost btn-xs"
+                    hx-delete="/projects/{{$.Project.Slug}}/milestones/{{.ID}}"
+                    hx-confirm="¿Eliminar este hito? Las tareas asociadas no se eliminarán.">×</button>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty-state">No hay hitos todavía</div>
+        {{end}}
+    </div>
+</div>
+
+{{if not .IsClient}}
+<dialog id="new-milestone-modal" class="modal">
+    <form method="POST" action="/projects/{{.Project.Slug}}/milestones">
+        <h2>Nuevo hito</h2>
+        <div class="form-group">
+            <label for="ms-name">Nombre</label>
+            <input type="text" id="ms-name" name="name" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="ms-description">Descripción</label>
+            <textarea id="ms-description" name="description" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="ms-target-date">Fecha objetivo</label>
+            <input type="date" id="ms-target-date" name="target_date">
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+    </form>
+</dialog>
+{{end}}
+{{end}}

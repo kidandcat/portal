@@ -55,6 +55,15 @@ func migrate() {
 			role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('owner','member','client')),
 			UNIQUE(project_id, user_id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS milestones (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			target_date DATE,
+			position INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE TABLE IF NOT EXISTS issues (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -64,6 +73,7 @@ func migrate() {
 			priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high','urgent')),
 			assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
 			due_date DATE,
+			milestone_id INTEGER REFERENCES milestones(id) ON DELETE SET NULL,
 			position INTEGER NOT NULL DEFAULT 0,
 			created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -100,4 +110,7 @@ func migrate() {
 			log.Fatalf("migration error: %v\nSQL: %s", err, s)
 		}
 	}
+
+	// Add milestone_id column to issues if it doesn't exist (migration for existing DBs)
+	db.Exec("ALTER TABLE issues ADD COLUMN milestone_id INTEGER REFERENCES milestones(id) ON DELETE SET NULL")
 }

@@ -60,15 +60,16 @@ func main() {
 	app.HandleFunc("POST /projects/{slug}/issues/{id}", handleUpdateIssue)
 	app.HandleFunc("DELETE /projects/{slug}/issues/{id}", handleDeleteIssue)
 
+	// Milestones
+	app.HandleFunc("POST /projects/{slug}/milestones", handleCreateMilestone)
+	app.HandleFunc("POST /projects/{slug}/milestones/{id}", handleUpdateMilestone)
+	app.HandleFunc("DELETE /projects/{slug}/milestones/{id}", handleDeleteMilestone)
+
 	// Files
 	app.HandleFunc("POST /projects/{slug}/files", handleUploadFile)
 	app.HandleFunc("POST /projects/{slug}/folders", handleCreateFolder)
 	app.HandleFunc("GET /projects/{slug}/files/{id}/download", handleDownloadFile)
 	app.HandleFunc("DELETE /projects/{slug}/files/{id}", handleDeleteFile)
-
-	// Chat
-	app.HandleFunc("POST /projects/{slug}/chat", handleSendMessage)
-	app.HandleFunc("GET /projects/{slug}/chat/poll", handleChatPoll)
 
 	// Admin
 	app.HandleFunc("GET /admin", requireAdmin(handleAdmin))

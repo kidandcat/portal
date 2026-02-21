@@ -6,11 +6,11 @@
         <div class="topbar">
             <h1>{{.Project.Name}}</h1>
             <div class="tabs">
-                <a href="#" class="tab{{if eq .Tab "issues"}} active{{end}}" data-tab="issues">Issues</a>
-                <a href="#" class="tab{{if eq .Tab "files"}} active{{end}}" data-tab="files">Files</a>
-                <a href="#" class="tab{{if eq .Tab "chat"}} active{{end}}" data-tab="chat">Chat</a>
-                {{if not .IsClient}}
-                <a href="/projects/{{.Project.Slug}}/settings" class="tab">Settings</a>
+                <a href="#" class="tab{{if eq .Tab "issues"}} active{{end}}" data-tab="issues">Tareas</a>
+                <a href="#" class="tab{{if eq .Tab "milestones"}} active{{end}}" data-tab="milestones">Hitos</a>
+                <a href="#" class="tab{{if eq .Tab "files"}} active{{end}}" data-tab="files">Archivos</a>
+                {{if .IsOwnerOrAdmin}}
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab">Ajustes</a>
                 {{end}}
             </div>
         </div>
@@ -18,11 +18,11 @@
         <div id="tab-issues" class="tab-panel{{if eq .Tab "issues"}} active{{end}}">
             {{template "issues_tab" .}}
         </div>
+        <div id="tab-milestones" class="tab-panel{{if eq .Tab "milestones"}} active{{end}}">
+            {{template "milestones_tab" .}}
+        </div>
         <div id="tab-files" class="tab-panel{{if eq .Tab "files"}} active{{end}}">
             {{template "files_tab" .}}
-        </div>
-        <div id="tab-chat" class="tab-panel{{if eq .Tab "chat"}} active{{end}}">
-            {{template "chat_tab" .}}
         </div>
     </main>
 </div>

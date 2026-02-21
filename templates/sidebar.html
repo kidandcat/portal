@@ -5,7 +5,7 @@
     </div>
     <nav class="sidebar-nav">
         <div class="sidebar-section">
-            <div class="sidebar-section-title">Projects</div>
+            <div class="sidebar-section-title">Proyectos</div>
             {{range .Projects}}
             <a href="/projects/{{.Slug}}" class="sidebar-link{{if and $.Project (eq $.Project.Slug .Slug)}} active{{end}}">
                 <span class="sidebar-dot"></span>
@@ -21,7 +21,7 @@
         <div class="sidebar-user">
             <span>{{.User.Name}}</span>
             <form method="POST" action="/logout" style="display:inline">
-                <button type="submit" class="btn-link">Logout</button>
+                <button type="submit" class="btn-logout">Salir</button>
             </form>
         </div>
     </div>

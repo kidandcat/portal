@@ -5,14 +5,14 @@
         <div class="auth-logo">Portal</div>
         {{if .Error}}
             <div class="alert alert-error">{{.Error}}</div>
-            <a href="/login" class="btn btn-secondary btn-full">Back to login</a>
+            <a href="/login" class="btn btn-secondary btn-full">Volver al inicio de sesión</a>
         {{else}}
-            <h2>Confirm Login</h2>
-            <p>Signing in as <strong>{{.Email}}</strong></p>
+            <h2>Confirmar inicio de sesión</h2>
+            <p>Iniciando sesión como <strong>{{.Email}}</strong></p>
             <form method="POST" action="/auth/approve?token={{.Token}}">
-                <button type="submit" class="btn btn-primary btn-full">Approve Login</button>
+                <button type="submit" class="btn btn-primary btn-full">Aprobar inicio de sesión</button>
             </form>
-            <a href="/login" class="btn btn-secondary btn-full" style="margin-top:0.5rem">Cancel</a>
+            <a href="/login" class="btn btn-secondary btn-full" style="margin-top:0.5rem">Cancelar</a>
         {{end}}
     </div>
 </div>
