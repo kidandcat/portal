@@ -1,11 +1,12 @@
 {
-  "addr": ":8080",
-  "projects": [
-    {
-      "slug": "myproject",
-      "name": "My Project",
-      "password": "changeme",
-      "path": "/path/to/project/files/"
-    }
-  ]
+    "port": "8080",
+    "db_path": "portal.db",
+    "base_url": "http://localhost:8080",
+    "upload_dir": "uploads",
+    "admin_email": "admin@example.com",
+    "smtp_host": "",
+    "smtp_port": 587,
+    "smtp_user": "",
+    "smtp_pass": "",
+    "smtp_from": "portal@example.com"
 }

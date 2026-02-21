@@ -1,3 +1,5 @@
-module github.com/kidandcat/portal
+module portal
 
-go 1.25.5
+go 1.23
+
+require github.com/mattn/go-sqlite3 v1.14.24

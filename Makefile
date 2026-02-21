@@ -1,10 +1,8 @@
-.PHONY: build run clean
+run:
+	go run .
 
 build:
 	go build -o portal .
 
-run: build
-	./portal
-
-clean:
-	rm -f portal
+dev:
+	go run . -dev

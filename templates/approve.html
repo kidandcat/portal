@@ -1,0 +1,19 @@
+{{template "layout" .}}
+{{define "content"}}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-logo">Portal</div>
+        {{if .Error}}
+            <div class="alert alert-error">{{.Error}}</div>
+            <a href="/login" class="btn btn-secondary btn-full">Back to login</a>
+        {{else}}
+            <h2>Confirm Login</h2>
+            <p>Signing in as <strong>{{.Email}}</strong></p>
+            <form method="POST" action="/auth/approve?token={{.Token}}">
+                <button type="submit" class="btn btn-primary btn-full">Approve Login</button>
+            </form>
+            <a href="/login" class="btn btn-secondary btn-full" style="margin-top:0.5rem">Cancel</a>
+        {{end}}
+    </div>
+</div>
+{{end}}

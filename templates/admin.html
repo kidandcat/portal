@@ -1,0 +1,50 @@
+{{template "layout" .}}
+{{define "content"}}
+<div class="app">
+    {{template "sidebar" .}}
+    <main class="main">
+        <div class="topbar">
+            <h1>Admin — Users</h1>
+        </div>
+
+        <div class="tab-content">
+            <div class="toolbar">
+                <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-user-modal').showDialog ? document.getElementById('new-user-modal').showDialog() : document.getElementById('new-user-modal').showModal()">New User</button>
+            </div>
+
+            <div id="users-table-wrapper">
+                {{template "admin_users_table" .}}
+            </div>
+        </div>
+    </main>
+</div>
+
+<dialog id="new-user-modal" class="modal">
+    <form method="POST" action="/admin/users"
+          hx-post="/admin/users"
+          hx-target="#users-table-wrapper"
+          hx-on::after-request="this.closest('dialog').close(); this.reset();">
+        <h2>New User</h2>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" name="role">
+                <option value="user">User</option>
+                <option value="client">Client</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </form>
+</dialog>
+{{end}}

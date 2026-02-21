@@ -1,0 +1,63 @@
+{{template "layout" .}}
+{{define "content"}}
+<div class="app">
+    {{template "sidebar" .}}
+    <main class="main">
+        <div class="topbar">
+            <h1>{{.Project.Name}} — Settings</h1>
+            <div class="tabs">
+                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab">Issues</a>
+                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab">Files</a>
+                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab">Chat</a>
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab active">Settings</a>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <h2>Members</h2>
+            <form method="POST" action="/projects/{{.Project.Slug}}/settings" class="inline-form">
+                <input type="hidden" name="action" value="add_member">
+                <select name="email" required>
+                    <option value="">Select user...</option>
+                    {{range .AllUsers}}
+                    <option value="{{.Email}}">{{.Name}} ({{.Email}})</option>
+                    {{end}}
+                </select>
+                <select name="role">
+                    <option value="member">Member</option>
+                    <option value="client">Client</option>
+                    <option value="owner">Owner</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </form>
+
+            <table class="table" style="margin-top:1rem">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Members}}
+                    <tr>
+                        <td>{{.User.Name}}</td>
+                        <td>{{.User.Email}}</td>
+                        <td><span class="badge badge-{{.Role}}">{{.Role}}</span></td>
+                        <td>
+                            <form method="POST" action="/projects/{{$.Project.Slug}}/settings" style="display:inline">
+                                <input type="hidden" name="action" value="remove_member">
+                                <input type="hidden" name="user_id" value="{{.UserID}}">
+                                <button type="submit" class="btn btn-danger btn-xs" onclick="return confirm('Remove this member?')">×</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+{{end}}

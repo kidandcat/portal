@@ -1,0 +1,27 @@
+{{template "layout" .}}
+{{define "content"}}
+<div class="app">
+    {{template "sidebar" .}}
+    <main class="main">
+        <div class="topbar">
+            <h1>{{.Project.Name}}</h1>
+            <div class="tabs">
+                <a href="/projects/{{.Project.Slug}}?tab=issues" class="tab{{if eq .Tab "issues"}} active{{end}}">Issues</a>
+                <a href="/projects/{{.Project.Slug}}?tab=files" class="tab{{if eq .Tab "files"}} active{{end}}">Files</a>
+                <a href="/projects/{{.Project.Slug}}?tab=chat" class="tab{{if eq .Tab "chat"}} active{{end}}">Chat</a>
+                {{if not .IsClient}}
+                <a href="/projects/{{.Project.Slug}}/settings" class="tab">Settings</a>
+                {{end}}
+            </div>
+        </div>
+
+        {{if eq .Tab "issues"}}
+            {{template "issues_tab" .}}
+        {{else if eq .Tab "files"}}
+            {{template "files_tab" .}}
+        {{else if eq .Tab "chat"}}
+            {{template "chat_tab" .}}
+        {{end}}
+    </main>
+</div>
+{{end}}
