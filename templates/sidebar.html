@@ -19,9 +19,6 @@
         </div>
     </nav>
     <div class="sidebar-footer">
-        {{if eq .User.Role "admin"}}
-        <a href="/admin" class="sidebar-link">Admin</a>
-        {{end}}
         <div class="sidebar-user">
             <span>{{.User.Name}}</span>
             <form method="POST" action="/logout" style="display:inline">

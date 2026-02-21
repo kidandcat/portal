@@ -6,6 +6,16 @@
         {{if .Error}}
             <div class="alert alert-error">{{.Error}}</div>
             <a href="/login" class="btn btn-secondary btn-full">Volver al inicio de sesión</a>
+        {{else if .Approved}}
+            <div class="auth-success">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h2>Inicio de sesión aprobado</h2>
+                <p>Ya puedes volver a la página donde estabas.</p>
+                <p class="text-muted">Puedes cerrar esta pestaña.</p>
+            </div>
         {{else}}
             <h2>Confirmar inicio de sesión</h2>
             <p>Iniciando sesión como <strong>{{.Email}}</strong></p>

@@ -119,11 +119,8 @@ func initTemplates() {
 		"login.html":            mustParsePage("templates/layout.html", "templates/login.html"),
 		"login_sent.html":       mustParsePage("templates/layout.html", "templates/login_sent.html"),
 		"approve.html":          mustParsePage("templates/layout.html", "templates/approve.html"),
-		"admin.html":            mustParsePage(append(shared, "templates/admin.html", "templates/admin_users_table.html")...),
-
 		// HTMX partials
-		"issues_table":      mustParsePage("templates/issues_tab.html"),
-		"admin_users_table": mustParsePage("templates/admin_users_table.html"),
+		"issues_table": mustParsePage("templates/issues_tab.html"),
 	}
 }
 

@@ -14,7 +14,7 @@
             <a href="/projects/{{.Slug}}" class="project-card">
                 <div class="project-card-name">{{.Name}}</div>
                 {{if .Description}}<div class="project-card-desc">{{.Description}}</div>{{end}}
-                <div class="project-card-role badge badge-{{.MemberRole}}">{{.MemberRole}}</div>
+                {{if not (eq .MemberRole "client")}}<div class="project-card-role badge badge-{{.MemberRole}}">{{.MemberRole}}</div>{{end}}
             </a>
             {{else}}
             <div class="empty-state">

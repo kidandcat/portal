@@ -43,7 +43,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	go sendMagicEmail(email, link)
 	log.Printf("Magic link for %s: %s", email, link)
 
-	renderTemplate(w, "login_sent.html", map[string]any{"Email": email})
+	renderTemplate(w, "login_sent.html", map[string]any{"Email": email, "Token": token})
 }
 
 func handleApprove(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +96,59 @@ func handleApprove(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+
+	renderTemplate(w, "approve.html", map[string]any{"Approved": true, "Email": mt.Email})
+}
+
+func handleAuthStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.Write([]byte(`{"approved":false}`))
+		return
+	}
+
+	// If this browser already has a valid session, just return approved
+	if cookie, err := r.Cookie("session"); err == nil {
+		var count int
+		db.QueryRow("SELECT COUNT(*) FROM sessions WHERE token = ?", cookie.Value).Scan(&count)
+		if count > 0 {
+			w.Write([]byte(`{"approved":true}`))
+			return
+		}
+	}
+
+	var mt MagicToken
+	err := db.QueryRow(
+		"SELECT id, email, token, created_at, approved_at FROM magic_tokens WHERE token = ?", token,
+	).Scan(&mt.ID, &mt.Email, &mt.Token, &mt.CreatedAt, &mt.ApprovedAt)
+	if err != nil || mt.ApprovedAt == nil {
+		w.Write([]byte(`{"approved":false}`))
+		return
+	}
+
+	var u User
+	err = db.QueryRow("SELECT id, email, name, role FROM users WHERE email = ?", mt.Email).Scan(&u.ID, &u.Email, &u.Name, &u.Role)
+	if err != nil {
+		w.Write([]byte(`{"approved":false}`))
+		return
+	}
+
+	sessionToken := generateToken()
+	expires := time.Now().Add(30 * 24 * time.Hour)
+	db.Exec("INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)", u.ID, sessionToken, expires)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    sessionToken,
+		Path:     "/",
+		Expires:  expires,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	w.Write([]byte(`{"approved":true}`))
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {

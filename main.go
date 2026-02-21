@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 //go:embed static/*
@@ -22,12 +23,21 @@ func main() {
 	initTemplates()
 	os.MkdirAll(cfg.UploadDir, 0755)
 
-	// Seed admin user if no users exist
-	var count int
-	db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	if count == 0 && cfg.AdminEmail != "" {
-		db.Exec("INSERT INTO users (email, name, role) VALUES (?, 'Admin', 'admin')", cfg.AdminEmail)
-		log.Printf("Created admin user: %s", cfg.AdminEmail)
+	// Sync admin users from config
+	for _, email := range cfg.AdminEmails {
+		email = strings.TrimSpace(strings.ToLower(email))
+		if email == "" {
+			continue
+		}
+		var exists bool
+		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", email).Scan(&exists)
+		if !exists {
+			name := strings.Split(email, "@")[0]
+			db.Exec("INSERT INTO users (email, name, role) VALUES (?, ?, 'admin')", email, name)
+			log.Printf("Created admin user: %s", email)
+		} else {
+			db.Exec("UPDATE users SET role = 'admin' WHERE email = ?", email)
+		}
 	}
 
 	mux := http.NewServeMux()
@@ -41,6 +51,7 @@ func main() {
 	mux.HandleFunc("POST /login", handleLogin)
 	mux.HandleFunc("GET /auth/approve", handleApprove)
 	mux.HandleFunc("POST /auth/approve", handleApprove)
+	mux.HandleFunc("GET /auth/status", handleAuthStatus)
 	mux.HandleFunc("POST /logout", handleLogout)
 
 	// Authenticated routes
@@ -70,11 +81,6 @@ func main() {
 	app.HandleFunc("POST /projects/{slug}/folders", handleCreateFolder)
 	app.HandleFunc("GET /projects/{slug}/files/{id}/download", handleDownloadFile)
 	app.HandleFunc("DELETE /projects/{slug}/files/{id}", handleDeleteFile)
-
-	// Admin
-	app.HandleFunc("GET /admin", requireAdmin(handleAdmin))
-	app.HandleFunc("POST /admin/users", requireAdmin(handleAdminCreateUser))
-	app.HandleFunc("DELETE /admin/users/{id}", requireAdmin(handleAdminDeleteUser))
 
 	mux.Handle("/", authMiddleware(app))
 
