@@ -12,6 +12,7 @@ type Config struct {
 	DBPath       string   `json:"db_path"`
 	BaseURL      string   `json:"base_url"`
 	UploadDir    string   `json:"upload_dir"`
+	DashboardDir string   `json:"dashboard_dir"`
 	ResendAPIKey string   `json:"resend_api_key"`
 	AdminEmails  []string `json:"admin_emails"`
 }
@@ -20,11 +21,12 @@ var cfg Config
 
 func loadConfig(path string) {
 	cfg = Config{
-		Port:        "8080",
-		DBPath:      "portal.db",
-		BaseURL:     "http://localhost:8080",
-		UploadDir:   "uploads",
-		AdminEmails: []string{"kidandcat@gmail.com"},
+		Port:         "8080",
+		DBPath:       "portal.db",
+		BaseURL:      "http://localhost:8080",
+		UploadDir:    "uploads",
+		DashboardDir: "dashboards",
+		AdminEmails:  []string{"kidandcat@gmail.com"},
 	}
 
 	f, err := os.Open(path)
@@ -47,6 +49,9 @@ func loadConfig(path string) {
 	}
 	if v := os.Getenv("UPLOAD_DIR"); v != "" {
 		cfg.UploadDir = v
+	}
+	if v := os.Getenv("DASHBOARD_DIR"); v != "" {
+		cfg.DashboardDir = v
 	}
 	if v := os.Getenv("RESEND_API_KEY"); v != "" {
 		cfg.ResendAPIKey = v

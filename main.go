@@ -22,6 +22,7 @@ func main() {
 	initDB(cfg.DBPath)
 	initTemplates()
 	os.MkdirAll(cfg.UploadDir, 0755)
+	os.MkdirAll(cfg.DashboardDir, 0755)
 
 	// Sync admin users from config
 	for _, email := range cfg.AdminEmails {
@@ -46,13 +47,21 @@ func main() {
 	staticSub, _ := fs.Sub(staticFS, "static")
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
 
-	// Auth routes (public)
+	// Public routes
 	mux.HandleFunc("GET /login", handleLogin)
 	mux.HandleFunc("POST /login", handleLogin)
 	mux.HandleFunc("GET /auth/approve", handleApprove)
 	mux.HandleFunc("POST /auth/approve", handleApprove)
 	mux.HandleFunc("GET /auth/status", handleAuthStatus)
 	mux.HandleFunc("POST /logout", handleLogout)
+	mux.HandleFunc("GET /llms.txt", handleLlmsTxt)
+
+	// API routes (API key auth)
+	api := http.NewServeMux()
+	api.HandleFunc("PUT /projects/{slug}/dashboard/{path...}", handleAPIPushDashboard)
+	api.HandleFunc("PUT /projects/{slug}/status", handleAPIPushStatus)
+	api.HandleFunc("PUT /projects/{slug}/roadmap", handleAPIPushRoadmap)
+	mux.Handle("/api/", http.StripPrefix("/api", apiKeyAuth(api)))
 
 	// Authenticated routes
 	app := http.NewServeMux()
@@ -81,6 +90,10 @@ func main() {
 	app.HandleFunc("POST /projects/{slug}/folders", handleCreateFolder)
 	app.HandleFunc("GET /projects/{slug}/files/{id}/download", handleDownloadFile)
 	app.HandleFunc("DELETE /projects/{slug}/files/{id}", handleDeleteFile)
+
+	// Project dashboards (served at /{slug})
+	app.HandleFunc("GET /{slug}", handleProjectDashboard)
+	app.HandleFunc("GET /{slug}/{path...}", handleProjectDashboardAsset)
 
 	mux.Handle("/", authMiddleware(app))
 

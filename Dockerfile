@@ -10,7 +10,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates sqlite
 WORKDIR /app
 COPY --from=builder /app/portal .
-RUN mkdir -p /data/uploads
+RUN mkdir -p /data/uploads /data/dashboards
 VOLUME /data
 EXPOSE 8080
 CMD ["./portal", "/data/config.json"]

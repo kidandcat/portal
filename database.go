@@ -113,4 +113,16 @@ func migrate() {
 
 	// Add milestone_id column to issues if it doesn't exist (migration for existing DBs)
 	db.Exec("ALTER TABLE issues ADD COLUMN milestone_id INTEGER REFERENCES milestones(id) ON DELETE SET NULL")
+
+	// API keys for programmatic access
+	db.Exec(`CREATE TABLE IF NOT EXISTS api_keys (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+		key TEXT UNIQUE NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`)
+
+	// Project content fields for API-pushed content
+	db.Exec("ALTER TABLE projects ADD COLUMN status_md TEXT NOT NULL DEFAULT ''")
+	db.Exec("ALTER TABLE projects ADD COLUMN roadmap_md TEXT NOT NULL DEFAULT ''")
 }

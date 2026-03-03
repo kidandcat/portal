@@ -6,6 +6,7 @@ primary_region = 'cdg'
 [env]
   DB_PATH = '/data/portal.db'
   UPLOAD_DIR = '/data/uploads'
+  DASHBOARD_DIR = '/data/dashboards'
   BASE_URL = 'https://portal-menta.fly.dev'
   ADMIN_EMAIL = 'kidandcat@gmail.com'
 
