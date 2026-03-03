@@ -366,39 +366,37 @@ body {
 .table tr:hover td { background: #f8fafc; }
 
 /* Issues list (card-based, mobile-first) */
-.issues-list {
+.issues-table {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-}
-
-.issue-card {
-    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    transition: border-color 0.15s;
-}
-.issue-card:hover {
-    border-color: var(--primary);
+    overflow: hidden;
 }
 
-.issue-card-header {
+.issue-row {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.issue-title { font-weight: 500; font-size: 0.9rem; }
-
-.issue-card-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
     align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
 }
+.issue-row:last-child { border-bottom: none; }
+.issue-row:hover { background: var(--bg-card); }
+
+.issue-row-title {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.issue-row-delete { opacity: 0; transition: opacity 0.1s; flex-shrink: 0; }
+.issue-row:hover .issue-row-delete { opacity: 1; }
 
 /* Inline select */
 .inline-select {

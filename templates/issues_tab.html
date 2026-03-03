@@ -51,41 +51,40 @@
 {{end}}
 
 {{define "issues_table"}}
-<div class="issues-list">
+<div class="issues-table">
     {{range .Issues}}
     {{$issue := .}}
-    <div class="issue-card" data-id="{{.ID}}">
-        <div class="issue-card-header">
-            <span class="issue-title">{{.Title}}</span>
-            {{if not $.IsClient}}
-            <button class="btn btn-ghost btn-xs"
-                hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                hx-target="#issues-table-wrapper"
-                hx-confirm="¿Eliminar esta tarea?">×</button>
-            {{end}}
-        </div>
-        <div class="issue-card-meta">
-            {{if not $.IsClient}}
-            <select class="inline-select status-select status-{{.Status}}"
-                hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                hx-target="#issues-table-wrapper"
-                hx-vals='{"field":"status"}'
-                name="value">
-                {{range $.Statuses}}<option value="{{.}}" {{if eq . $issue.Status}}selected{{end}}>{{statusLabel .}}</option>{{end}}
-            </select>
-            <select class="inline-select milestone-select"
-                hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
-                hx-target="#issues-table-wrapper"
-                hx-vals='{"field":"milestone_id"}'
-                name="value">
-                <option value="">Sin hito</option>
-                {{range $.Milestones}}<option value="{{.ID}}" {{if and $issue.MilestoneID (eq .ID (derefInt64 $issue.MilestoneID))}}selected{{end}}>{{.Name}}</option>{{end}}
-            </select>
-            {{else}}
-            <span class="badge badge-status-{{.Status}}">{{statusLabel .Status}}</span>
-            {{if .Milestone}}<span class="badge badge-milestone">{{.Milestone.Name}}</span>{{end}}
-            {{end}}
-        </div>
+    <div class="issue-row" data-id="{{.ID}}">
+        {{if not $.IsClient}}
+        <select class="inline-select status-select status-{{.Status}}"
+            hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+            hx-target="#issues-table-wrapper"
+            hx-vals='{"field":"status"}'
+            name="value">
+            {{range $.Statuses}}<option value="{{.}}" {{if eq . $issue.Status}}selected{{end}}>{{statusLabel .}}</option>{{end}}
+        </select>
+        {{else}}
+        <span class="badge badge-status-{{.Status}}">{{statusLabel .Status}}</span>
+        {{end}}
+        <span class="issue-row-title">{{.Title}}</span>
+        {{if not $.IsClient}}
+        <select class="inline-select milestone-select"
+            hx-post="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+            hx-target="#issues-table-wrapper"
+            hx-vals='{"field":"milestone_id"}'
+            name="value">
+            <option value="">Sin hito</option>
+            {{range $.Milestones}}<option value="{{.ID}}" {{if and $issue.MilestoneID (eq .ID (derefInt64 $issue.MilestoneID))}}selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        {{else}}
+        {{if .Milestone}}<span class="badge badge-milestone">{{.Milestone.Name}}</span>{{end}}
+        {{end}}
+        {{if not $.IsClient}}
+        <button class="btn btn-ghost btn-xs issue-row-delete"
+            hx-delete="/projects/{{$.Project.Slug}}/issues/{{.ID}}"
+            hx-target="#issues-table-wrapper"
+            hx-confirm="¿Eliminar esta tarea?">×</button>
+        {{end}}
     </div>
     {{else}}
     <div class="empty-state">No hay tareas todavía</div>

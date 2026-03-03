@@ -62,7 +62,7 @@ func handleProject(w http.ResponseWriter, r *http.Request) {
 	p.MemberRole = role
 	tab := r.URL.Query().Get("tab")
 	if tab == "" {
-		tab = "issues"
+		tab = "milestones"
 	}
 
 	isClient := role == "client"
