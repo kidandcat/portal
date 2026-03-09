@@ -61,6 +61,7 @@ func main() {
 	api.HandleFunc("PUT /projects/{slug}/dashboard/{path...}", handleAPIPushDashboard)
 	api.HandleFunc("PUT /projects/{slug}/status", handleAPIPushStatus)
 	api.HandleFunc("PUT /projects/{slug}/roadmap", handleAPIPushRoadmap)
+	api.HandleFunc("POST /projects/{slug}/issues", handleAPICreateIssue)
 	mux.Handle("/api/", http.StripPrefix("/api", apiKeyAuth(api)))
 
 	// Authenticated routes

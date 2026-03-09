@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -140,6 +141,62 @@ func handleAPIPushRoadmap(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"ok":true,"size":%d}`, len(body))
 }
 
+func handleAPICreateIssue(w http.ResponseWriter, r *http.Request) {
+	projectID := r.Context().Value(apiProjectIDKey).(int64)
+	slug := r.Context().Value(apiProjectSlugKey).(string)
+	if r.PathValue("slug") != slug {
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"API key does not match project"}`, http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Status      string `json:"status"`
+		Priority    string `json:"priority"`
+		MilestoneID *int64 `json:"milestone_id"`
+	}
+
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"invalid JSON body"}`, http.StatusBadRequest)
+		return
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"title is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	status := req.Status
+	if status == "" {
+		status = "backlog"
+	}
+	priority := req.Priority
+	if priority == "" {
+		priority = "medium"
+	}
+
+	var maxPos int
+	db.QueryRow("SELECT COALESCE(MAX(position), 0) FROM issues WHERE project_id = ? AND status = ?", projectID, status).Scan(&maxPos)
+
+	result, err := db.Exec(`INSERT INTO issues (project_id, title, description, status, priority, milestone_id, position)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		projectID, title, req.Description, status, priority, req.MilestoneID, maxPos+1)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"failed to create issue"}`, http.StatusInternalServerError)
+		return
+	}
+
+	id, _ := result.LastInsertId()
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"ok":true,"id":%d}`, id)
+}
+
 func handleProjectDashboard(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 
@@ -251,6 +308,23 @@ Example:
       --data-binary @ROADMAP.md \
       %s/api/projects/myproject/roadmap
 
+### Create Issue
+
+Create a new issue/task in the project.
+
+    POST /api/projects/{slug}/issues
+
+- Body: JSON object
+- Fields: title (required), description, status (backlog|todo|in_progress|review|done), priority (low|medium|high|urgent), milestone_id
+
+Example:
+
+    curl -X POST \
+      -H "Authorization: Bearer pk_..." \
+      -H "Content-Type: application/json" \
+      -d '{"title":"My task","description":"Details","status":"backlog","priority":"medium"}' \
+      %s/api/projects/myproject/issues
+
 ## Dashboard Serving
 
 Project dashboards are served at (requires session authentication):
@@ -267,5 +341,5 @@ Success:
 Error:
 
     {"error": "description of what went wrong"}
-`, cfg.BaseURL, cfg.BaseURL, cfg.BaseURL, cfg.BaseURL)
+`, cfg.BaseURL, cfg.BaseURL, cfg.BaseURL, cfg.BaseURL, cfg.BaseURL)
 }
